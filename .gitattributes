@@ -1,0 +1,6 @@
+# Force LF line endings in the repository (Unix-style for Docker/Linux deployment)
+* text=auto eol=lf
+
+# Keep CRLF for Windows-only scripts if any
+*.bat text eol=crlf
+*.cmd text eol=crlf
