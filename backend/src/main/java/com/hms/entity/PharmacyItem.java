@@ -10,14 +10,12 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "pharmacy_items")
 @EntityListeners(AuditingEntityListener.class)
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
-@EqualsAndHashCode(of = "id") @ToString(exclude = "stockBatches")
+@EqualsAndHashCode(of = "id") @ToString
 public class PharmacyItem {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,10 +39,6 @@ public class PharmacyItem {
     @Column(name = "reorder_level", nullable = false)
     @Builder.Default
     private int reorderLevel = 10;
-
-    @OneToMany(mappedBy = "pharmacyItem", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<PharmacyStock> stockBatches = new ArrayList<>();
 
     @CreatedDate @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

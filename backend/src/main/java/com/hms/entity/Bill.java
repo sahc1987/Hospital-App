@@ -16,7 +16,7 @@ import java.util.List;
 @Table(name = "bills")
 @EntityListeners(AuditingEntityListener.class)
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
-@EqualsAndHashCode(of = "id") @ToString(exclude = {"patient", "admission", "appointment", "insuranceProvider", "items"})
+@EqualsAndHashCode(of = "id") @ToString(exclude = {"patient", "admission", "appointment", "items"})
 public class Bill {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,10 +33,6 @@ public class Bill {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "appointment_id")
     private Appointment appointment;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "insurance_provider_id")
-    private InsuranceProvider insuranceProvider;
 
     @Column(name = "bill_date", nullable = false)
     private LocalDateTime billDate;

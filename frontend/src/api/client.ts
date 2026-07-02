@@ -18,13 +18,23 @@ client.interceptors.response.use(
   (res) => res,
   (err) => {
     const status = err.response?.status
+    // Extract the most specific message available from the response body
+    const serverMsg: string | undefined =
+      err.response?.data?.message || err.response?.data?.error
+
     if (status === 401) {
       useAuthStore.getState().logout()
-      window.location.href = '/login'
+      globalThis.location.href = '/login'
     } else if (status === 403) {
-      toast.error('You do not have permission to do that.')
-    } else if (status >= 500) {
-      toast.error('Server error. Please try again.')
+      toast.error(serverMsg ?? 'You do not have permission to do that.')
+    } else if (status === 400) {
+      // Validation errors bubble up per-field; let the caller handle them.
+      // Only show a global toast if no field errors are present.
+      if (!err.response?.data?.fields && serverMsg) {
+        toast.error(serverMsg)
+      }
+    } else if (status != null && status >= 500) {
+      toast.error(serverMsg ?? 'Server error. Please try again.')
     }
     return Promise.reject(err)
   },

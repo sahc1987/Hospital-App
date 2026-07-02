@@ -6,7 +6,6 @@ export type RoomType = 'GENERAL' | 'PRIVATE' | 'ICU' | 'EMERGENCY' | 'OT' | 'MAT
 export type RoomStatus = 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE'
 export type LabTestStatus = 'ORDERED' | 'COLLECTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
 export type BillStatus = 'PENDING' | 'PARTIAL' | 'PAID' | 'CANCELLED' | 'REFUNDED'
-export type ClaimStatus = 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'SETTLED'
 
 export interface AuthUser {
   userId: number
@@ -158,4 +157,22 @@ export interface ApiResponse<T> {
   success: boolean
   message: string
   data: T
+}
+
+export interface LinkedStaff {
+  type: 'DOCTOR' | 'EMPLOYEE'
+  id: number
+  name: string
+}
+
+export interface SystemUser {
+  id: number
+  username: string
+  email: string
+  fullName: string
+  role: UserRole
+  active: boolean
+  createdAt: string
+  updatedAt: string
+  linkedStaff: LinkedStaff | null
 }

@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Table(name = "doctors")
 @EntityListeners(AuditingEntityListener.class)
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
-@EqualsAndHashCode(of = "id") @ToString(exclude = "department")
+@EqualsAndHashCode(of = "id") @ToString(exclude = {"department", "user"})
 public class Doctor {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,6 +22,10 @@ public class Doctor {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
     private Department department;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @NotBlank
     @Column(nullable = false, length = 150)

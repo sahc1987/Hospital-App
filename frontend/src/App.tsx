@@ -1,5 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import { canAccess } from '@/utils/permissions'
+import type { UserRole } from '@/types'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import Login from '@/pages/auth/Login'
 import Dashboard from '@/pages/Dashboard'
@@ -15,10 +17,20 @@ import Billing from '@/pages/Billing'
 import Employees from '@/pages/Employees'
 import Payroll from '@/pages/Payroll'
 import Reports from '@/pages/Reports'
+import Users from '@/pages/Users'
+import AccessMatrix from '@/pages/AccessMatrix'
+import Profile from '@/pages/Profile'
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children }: Readonly<{ children: React.ReactNode }>) {
   const { isAuthenticated } = useAuthStore()
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
+}
+
+function RoleRoute({ path, children }: Readonly<{ path: string; children: React.ReactNode }>) {
+  const role = useAuthStore((s) => s.user?.role) as UserRole | undefined
+  if (!role) return <Navigate to="/login" replace />
+  if (!canAccess(role, path)) return <Navigate to="/" replace />
+  return <>{children}</>
 }
 
 export default function App() {
@@ -34,19 +46,24 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index            element={<Dashboard />} />
-        <Route path="patients"      element={<Patients />} />
-        <Route path="appointments"  element={<Appointments />} />
-        <Route path="doctors"       element={<Doctors />} />
-        <Route path="departments"   element={<Departments />} />
-        <Route path="admissions"    element={<Admissions />} />
-        <Route path="rooms"         element={<Rooms />} />
-        <Route path="lab"           element={<Lab />} />
-        <Route path="pharmacy"      element={<Pharmacy />} />
-        <Route path="billing"       element={<Billing />} />
-        <Route path="employees"     element={<Employees />} />
-        <Route path="payroll"       element={<Payroll />} />
-        <Route path="reports"       element={<Reports />} />
+        <Route index element={<Dashboard />} />
+
+        <Route path="patients"     element={<RoleRoute path="/patients"><Patients /></RoleRoute>} />
+        <Route path="appointments" element={<RoleRoute path="/appointments"><Appointments /></RoleRoute>} />
+        <Route path="doctors"      element={<RoleRoute path="/doctors"><Doctors /></RoleRoute>} />
+        <Route path="departments"  element={<RoleRoute path="/departments"><Departments /></RoleRoute>} />
+        <Route path="admissions"   element={<RoleRoute path="/admissions"><Admissions /></RoleRoute>} />
+        <Route path="rooms"        element={<RoleRoute path="/rooms"><Rooms /></RoleRoute>} />
+        <Route path="lab"          element={<RoleRoute path="/lab"><Lab /></RoleRoute>} />
+        <Route path="pharmacy"     element={<RoleRoute path="/pharmacy"><Pharmacy /></RoleRoute>} />
+        <Route path="billing"      element={<RoleRoute path="/billing"><Billing /></RoleRoute>} />
+        <Route path="employees"    element={<RoleRoute path="/employees"><Employees /></RoleRoute>} />
+        <Route path="payroll"      element={<RoleRoute path="/payroll"><Payroll /></RoleRoute>} />
+        <Route path="reports"      element={<RoleRoute path="/reports"><Reports /></RoleRoute>} />
+        <Route path="users"          element={<RoleRoute path="/users"><Users /></RoleRoute>} />
+        <Route path="access-matrix" element={<RoleRoute path="/access-matrix"><AccessMatrix /></RoleRoute>} />
+        {/* Profile is accessible to every authenticated user — no role restriction */}
+        <Route path="profile" element={<Profile />} />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />

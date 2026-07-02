@@ -2,8 +2,9 @@ import client from './client'
 import type {
   ApiResponse, PageResponse,
   Patient, Doctor, Department, Appointment, Room, Admission,
-  LabTest, Bill, PharmacyItem, Employee, Payroll, DashboardStats, AuthUser
+  LabTest, Bill, PharmacyItem, Employee, Payroll, DashboardStats, AuthUser, SystemUser
 } from '@/types'
+import type { UserRole } from '@/types'
 
 // Auth
 export const authApi = {
@@ -11,6 +12,12 @@ export const authApi = {
     client.post<ApiResponse<AuthUser>>('/auth/login', { username, password }),
   refresh: (token: string) =>
     client.post<ApiResponse<AuthUser>>(`/auth/refresh?token=${token}`),
+  me: () =>
+    client.get<ApiResponse<SystemUser>>('/auth/me'),
+  updateProfile: (data: { fullName: string; email: string }) =>
+    client.put<ApiResponse<SystemUser>>('/auth/me', data),
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    client.post<ApiResponse<void>>('/auth/change-password', data),
 }
 
 // Dashboard
@@ -127,8 +134,8 @@ export const pharmacyApi = {
 
 // Employees
 export const employeeApi = {
-  list: (name?: string, page = 0) =>
-    client.get<ApiResponse<PageResponse<Employee>>>('/employees', { params: { name, page } }),
+  list: (name?: string, page = 0, size = 20) =>
+    client.get<ApiResponse<PageResponse<Employee>>>('/employees', { params: { name, page, size } }),
   get: (id: number) => client.get<ApiResponse<Employee>>(`/employees/${id}`),
   create: (data: Partial<Employee & { departmentId?: number }>) =>
     client.post<ApiResponse<Employee>>('/employees', data),
@@ -144,4 +151,31 @@ export const payrollApi = {
   generate: (employeeId: number, month: string, basicSalary: number) =>
     client.post<ApiResponse<Payroll>>('/payroll', null, { params: { employeeId, month, basicSalary } }),
   markPaid: (id: number) => client.patch(`/payroll/${id}/pay`),
+}
+
+// Permissions matrix
+export const permissionsApi = {
+  get: () => client.get<ApiResponse<Record<string, UserRole[]>>>('/permissions'),
+  update: (matrix: Record<string, UserRole[]>) =>
+    client.put<ApiResponse<Record<string, UserRole[]>>>('/permissions', matrix),
+}
+
+// Users (ADMIN only)
+export const userApi = {
+  list: (q?: string, page = 0, size = 20) =>
+    client.get<ApiResponse<PageResponse<SystemUser>>>('/users', { params: { q, page, size } }),
+  get: (id: number) => client.get<ApiResponse<SystemUser>>(`/users/${id}`),
+  create: (data: {
+    username: string; password: string; email: string; fullName: string; role: UserRole;
+    specialization?: string; licenseNumber?: string; phone?: string; departmentId?: number; hireDate?: string;
+  }) =>
+    client.post<ApiResponse<SystemUser>>('/users', data),
+  update: (id: number, data: { username: string; password?: string; email: string; fullName: string; role: UserRole }) =>
+    client.put<ApiResponse<SystemUser>>(`/users/${id}`, data),
+  toggleActive: (id: number) => client.patch<ApiResponse<SystemUser>>(`/users/${id}/toggle-active`),
+  delete: (id: number) => client.delete(`/users/${id}`),
+  linkStaff: (id: number, staffType: string, staffId: number) =>
+    client.put<ApiResponse<SystemUser>>(`/users/${id}/link`, { staffType, staffId }),
+  unlinkStaff: (id: number) =>
+    client.delete<ApiResponse<SystemUser>>(`/users/${id}/link`),
 }
