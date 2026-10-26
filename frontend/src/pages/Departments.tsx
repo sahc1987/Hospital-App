@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Building2, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Building2, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { departmentApi } from '@/api/endpoints'
 import { Button } from '@/components/ui/Button'
@@ -12,11 +12,12 @@ import type { Department } from '@/types'
 export default function Departments() {
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Department | null>(null)
+  const [page, setPage] = useState(0)
   const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['departments'],
-    queryFn: () => departmentApi.list(),
+    queryKey: ['departments', page],
+    queryFn: () => departmentApi.list(page),
   })
 
   const { register, handleSubmit, reset, setValue } = useForm<Partial<Department>>()
@@ -39,7 +40,9 @@ export default function Departments() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['departments'] }); toast.success('Department deleted') },
   })
 
-  const departments = data?.data?.data ?? []
+  const pageData = data?.data?.data
+  const departments = pageData?.content ?? []
+  const totalPages = pageData?.totalPages ?? 0
 
   return (
     <div className="space-y-5 animate-slide-up">
@@ -88,6 +91,28 @@ export default function Departments() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={() => setPage((p) => p - 1)}
+            disabled={page === 0}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted disabled:opacity-40 hover:bg-surface-card transition"
+          >
+            <ChevronLeft size={14} />
+          </button>
+          <span className="text-sm text-ink-muted">
+            Page {page + 1} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page >= totalPages - 1}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted disabled:opacity-40 hover:bg-surface-card transition"
+          >
+            <ChevronRight size={14} />
+          </button>
         </div>
       )}
 

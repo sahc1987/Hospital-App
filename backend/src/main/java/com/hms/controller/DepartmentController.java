@@ -6,12 +6,13 @@ import com.hms.entity.Department;
 import com.hms.service.DepartmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/departments")
@@ -21,8 +22,9 @@ public class DepartmentController {
     private final DepartmentService service;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Department>>> list() {
-        return ResponseEntity.ok(ApiResponse.ok(service.findAll()));
+    public ResponseEntity<ApiResponse<Page<Department>>> list(
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.ok(service.findAll(pageable)));
     }
 
     @GetMapping("/{id}")

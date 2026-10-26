@@ -6,12 +6,10 @@ import com.hms.exception.BadRequestException;
 import com.hms.exception.ResourceNotFoundException;
 import com.hms.repository.DepartmentRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -20,9 +18,8 @@ public class DepartmentService {
     private final DepartmentRepository repo;
 
     @Transactional(readOnly = true)
-    @Cacheable("departments")
-    public List<Department> findAll() {
-        return repo.findAllByOrderByNameAsc();
+    public Page<Department> findAll(Pageable pageable) {
+        return repo.findAllByOrderByNameAsc(pageable);
     }
 
     @Transactional(readOnly = true)
@@ -31,7 +28,6 @@ public class DepartmentService {
     }
 
     @Transactional
-    @CacheEvict(value = "departments", allEntries = true)
     public Department create(DepartmentRequest request) {
         if (repo.existsByNameIgnoreCase(request.name()))
             throw new BadRequestException("Department already exists: " + request.name());
@@ -42,7 +38,6 @@ public class DepartmentService {
     }
 
     @Transactional
-    @CacheEvict(value = "departments", allEntries = true)
     public Department update(Long id, DepartmentRequest request) {
         Department existing = repo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Department", id));
         existing.setName(request.name());
@@ -51,7 +46,6 @@ public class DepartmentService {
     }
 
     @Transactional
-    @CacheEvict(value = "departments", allEntries = true)
     public void delete(Long id) {
         if (!repo.existsById(id)) throw new ResourceNotFoundException("Department", id);
         repo.deleteById(id);

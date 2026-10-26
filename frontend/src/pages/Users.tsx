@@ -70,8 +70,8 @@ export default function Users() {
   })
 
   const { data: departments = [] } = useQuery({
-    queryKey: ['departments'],
-    queryFn:  () => departmentApi.list().then((r) => r.data.data),
+    queryKey: ['departments', 'all'],
+    queryFn:  () => departmentApi.list(0, 200).then((r) => r.data.data.content),
     enabled:  modal === 'create',
     staleTime: 300_000,
   })

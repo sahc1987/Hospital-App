@@ -50,7 +50,8 @@ export const doctorApi = {
 
 // Departments
 export const departmentApi = {
-  list: () => client.get<ApiResponse<Department[]>>('/departments'),
+  list: (page = 0, size = 20) =>
+    client.get<ApiResponse<PageResponse<Department>>>('/departments', { params: { page, size } }),
   create: (data: Partial<Department>) => client.post<ApiResponse<Department>>('/departments', data),
   update: (id: number, data: Partial<Department>) =>
     client.put<ApiResponse<Department>>(`/departments/${id}`, data),
@@ -76,8 +77,10 @@ export const appointmentApi = {
 
 // Rooms
 export const roomApi = {
-  list: () => client.get<ApiResponse<Room[]>>('/rooms'),
+  list: (page = 0, size = 24) =>
+    client.get<ApiResponse<PageResponse<Room>>>('/rooms', { params: { page, size } }),
   available: () => client.get<ApiResponse<Room[]>>('/rooms/available'),
+  stats: () => client.get<ApiResponse<Record<'total' | 'available' | 'occupied' | 'maintenance', number>>>('/rooms/stats'),
   create: (data: Partial<Room>) => client.post<ApiResponse<Room>>('/rooms', data),
   update: (id: number, data: Partial<Room>) => client.put<ApiResponse<Room>>(`/rooms/${id}`, data),
   updateStatus: (id: number, status: string) =>

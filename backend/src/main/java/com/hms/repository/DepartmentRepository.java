@@ -1,10 +1,11 @@
 package com.hms.repository;
 
 import com.hms.entity.Department;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.List;
 
 public interface DepartmentRepository extends JpaRepository<Department, Long> {
-    List<Department> findAllByOrderByNameAsc();
+    Page<Department> findAllByOrderByNameAsc(Pageable pageable);
     boolean existsByNameIgnoreCase(String name);
 }

@@ -24,8 +24,8 @@ export default function Doctors() {
   })
 
   const { data: depts } = useQuery({
-    queryKey: ['departments'],
-    queryFn: () => departmentApi.list(),
+    queryKey: ['departments', 'all'],
+    queryFn: () => departmentApi.list(0, 200),
   })
 
   const { register, handleSubmit, reset, setValue } = useForm<Partial<Doctor>>()
@@ -63,7 +63,7 @@ export default function Doctors() {
   }
 
   const pageData = data?.data?.data
-  const departments = depts?.data?.data ?? []
+  const departments = depts?.data?.data?.content ?? []
 
   return (
     <div className="space-y-5 animate-slide-up">

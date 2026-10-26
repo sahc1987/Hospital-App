@@ -25,8 +25,8 @@ export default function Employees() {
   })
 
   const { data: depts } = useQuery({
-    queryKey: ['departments'],
-    queryFn: () => departmentApi.list(),
+    queryKey: ['departments', 'all'],
+    queryFn: () => departmentApi.list(0, 200),
   })
 
   const { register, handleSubmit, reset } = useForm<Partial<Employee & { departmentId?: number; hireDate: string }>>()
@@ -45,7 +45,7 @@ export default function Employees() {
   })
 
   const pageData = data?.data?.data
-  const departments = depts?.data?.data ?? []
+  const departments = depts?.data?.data?.content ?? []
 
   return (
     <div className="space-y-5 animate-slide-up">

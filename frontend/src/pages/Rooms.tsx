@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { BedDouble } from 'lucide-react'
+import { BedDouble, ChevronLeft, ChevronRight } from 'lucide-react'
 import { roomApi } from '@/api/endpoints'
 import { StatusBadge } from '@/components/ui/Badge'
 import type { Room } from '@/types'
@@ -14,14 +15,25 @@ const roomTypeColors: Record<string, string> = {
 }
 
 export default function Rooms() {
+  const [page, setPage] = useState(0)
+
   const { data, isLoading } = useQuery({
-    queryKey: ['rooms'],
-    queryFn: () => roomApi.list(),
+    queryKey: ['rooms', page],
+    queryFn: () => roomApi.list(page),
   })
 
-  const rooms = (data?.data?.data ?? []) as Room[]
-  const available = rooms.filter((r) => r.status === 'AVAILABLE').length
-  const occupied  = rooms.filter((r) => r.status === 'OCCUPIED').length
+  const { data: statsData } = useQuery({
+    queryKey: ['rooms-stats'],
+    queryFn: () => roomApi.stats(),
+  })
+
+  const pageData = data?.data?.data
+  const rooms = (pageData?.content ?? []) as Room[]
+  const totalPages = pageData?.totalPages ?? 0
+  const stats = statsData?.data?.data
+  const available = stats?.available ?? 0
+  const occupied  = stats?.occupied ?? 0
+  const total     = stats?.total ?? 0
 
   return (
     <div className="space-y-5 animate-slide-up">
@@ -50,7 +62,7 @@ export default function Rooms() {
             <BedDouble size={18} className="text-primary" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-ink">{rooms.length}</p>
+            <p className="text-2xl font-bold text-ink">{total}</p>
             <p className="text-xs text-ink-muted">Total Rooms</p>
           </div>
         </div>
@@ -79,6 +91,28 @@ export default function Rooms() {
               <p className="text-xs text-ink-muted mt-2">${room.dailyRate}/day</p>
             </div>
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={() => setPage((p) => p - 1)}
+            disabled={page === 0}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted disabled:opacity-40 hover:bg-surface-card transition"
+          >
+            <ChevronLeft size={14} />
+          </button>
+          <span className="text-sm text-ink-muted">
+            Page {page + 1} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page >= totalPages - 1}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted disabled:opacity-40 hover:bg-surface-card transition"
+          >
+            <ChevronRight size={14} />
+          </button>
         </div>
       )}
     </div>
