@@ -23,22 +23,23 @@
 
 A full hospital back office, built around the people who use it every day:
 
-- **Receptionists** register patients, book appointments, admit patients to rooms, and take payments.
-- **Doctors and nurses** see their patients, appointments, admissions, lab tests, and the pharmacy.
+- **Receptionists** register patients, book appointments into free slots, check patients in, admit them to rooms, and take payments.
+- **Doctors** run the visit: they see the patient's history, alerts and lab results, write the visit note and diagnosis, prescribe, order lab tests, and book the follow-up.
+- **Nurses** help at the front desk and can read the clinical record.
 - **Lab technicians** move tests from ordered to completed and record the results.
 - **Pharmacists** keep the medication catalog and restock items running low.
 - **HR** manages employees and runs monthly payroll.
 - **Admins** see everything, manage user accounts, and decide which role can open which module.
 
-**What makes it different:** permissions live in the database and are enforced by the API, not just hidden in the menu. An admin can change who sees what from a screen, and the change applies on the next request. An occupied room can't take a new admission, a doctor can't be booked twice at the same time, and a payment can never be more than what's still owed on the bill.
+**What makes it different:** permissions live in the database and are enforced by the API, not just hidden in the menu. An admin can change who sees what from a screen, and the change applies on the next request. An occupied room can't take a new admission, and a booking can't overlap another one for the same doctor or patient. A visit can't be closed without a diagnosis and note, and a payment can never be more than what's still owed on the bill.
 
 ## Contents
 
 | Start here | How it works | Reference |
 | --- | --- | --- |
 | [What it does](#what-it-does) | [Who can open what](#who-can-open-what) | [Data model](#data-model) |
-| [Who uses it](#who-uses-it) | [Admissions and rooms](#admissions-and-rooms) | [API endpoints](#api-endpoints) |
-| [Run it locally](#run-it-locally) | [Bills and payments](#bills-and-payments) | [Environment variables](#environment-variables) |
+| [Who uses it](#who-uses-it) | [Appointments and visits](#appointments-and-visits) | [API endpoints](#api-endpoints) |
+| [Run it locally](#run-it-locally) | [Admissions and rooms](#admissions-and-rooms) · [Bills and payments](#bills-and-payments) | [Environment variables](#environment-variables) |
 | [Demo accounts](#demo-accounts) | [How it's built](#how-its-built) · [Security](#security) | [Project structure](#project-structure) |
 
 ---
@@ -47,15 +48,16 @@ A full hospital back office, built around the people who use it every day:
 
 | Area | What you can do |
 | --- | --- |
-| 👤 **Patients** | Register patients with date of birth, gender, contact details, address, and blood group. Search and page through the list. |
-| 🩺 **Doctors and departments** | Keep doctors with their specialization, license number, and department. Departments group the doctors. |
-| 📅 **Appointments** | Book a patient with a doctor, see today's schedule, and mark each visit confirmed, completed, cancelled, or no-show. Double-booking a doctor at the same time is refused. |
+| 👤 **Patients** | Register patients with date of birth, gender, contact details, address, blood group, allergies, and chronic conditions. Search from the header or the list, and open any patient's appointment history. |
+| 🩺 **Doctors and departments** | Keep doctors with their specialization, license number, department, working hours, slot length, and consultation fee. Departments group the doctors. |
+| 📅 **Appointments** | Book only free slots inside a doctor's working hours, in a list or a weekly calendar. Filter by date, doctor, patient, and status, and reschedule or cancel with a reason. Every change is logged with who made it and when. |
+| 🩻 **Consultations** | The doctor opens the visit next to the patient's previous visits, alerts, and lab results. They document it, prescribe and print, order lab tests, and book a follow-up. The note locks when the visit is completed. |
 | 🛏️ **Admissions and rooms** | Admit a patient to an available room and discharge them later. Rooms are general, private, ICU, emergency, OT, or maternity, and their status updates on its own. |
-| 🔬 **Lab** | Order tests, move them through collected, in progress, and completed, and record one result per test. |
+| 🔬 **Lab** | Order tests (also from inside a visit, linked to it), move them through collected, in progress, and completed, and record one result per test. |
 | 💊 **Pharmacy** | Keep the medication catalog with prices and reorder levels, see what's running low, and restock. |
-| 💳 **Billing** | Create itemized bills for a patient and record full or partial payments. The bill's status follows the money. |
+| 💳 **Billing** | Create itemized bills for a patient and record full or partial payments. The bill's status follows the money. Completing a visit opens a pending bill for the doctor's consultation fee, if one is set. |
 | 👥 **Employees and payroll** | Keep staff records and generate one payroll per employee per month, then mark it paid. |
-| 📊 **Dashboard and reports** | Totals for patients, today's appointments, current admissions, free rooms, pending lab tests, low stock, unpaid bills, and this month's revenue, with charts. |
+| 📊 **Dashboard and reports** | **Dashboard:** a greeting, and admissions, appointments, and lab tests with real 7-day trend lines. Also room occupancy, today's appointments by status, your profile, and this week's schedule. **Reports:** totals for patients, doctors, staff, and this month's revenue. |
 | 🔐 **Accounts** | Admins create users, assign roles, turn accounts on or off, and link a login to its doctor or employee record. |
 | 🧩 **Access matrix** | A grid of roles × modules that admins edit on screen. The API checks it on every request. |
 
@@ -77,7 +79,13 @@ Default access, as seeded. Admins change it on the **Access Matrix** page. `ADMI
 | Reports | ✅ | ✅ | | | | | ✅ |
 | Users, access matrix | ✅ | | | | | | |
 
-Some actions are tighter than the module: only admins add, edit, or delete doctors and departments, only admins delete patients, and only admin, reception, nurses, and doctors register or edit patients.
+Some actions are tighter than the module:
+
+- Only admins add, edit, or delete doctors and departments, and only admins delete patients.
+- Only admin, reception, nurses, and doctors register or edit patients.
+- Appointments: admin, reception, and nurses manage every booking. A doctor manages only their own diary, and their list opens on "only my appointments."
+- Only the treating doctor (or an admin) starts, documents, and completes a visit.
+- Visit notes, diagnoses, and prescriptions are readable only by **admins, doctors, and nurses**. The front desk sees the appointment but not the clinical record.
 
 ---
 
@@ -108,6 +116,29 @@ sequenceDiagram
 - Each `/api/<module>` request is mapped to a module and checked against the `role_permissions` table.
 - `ADMIN` always passes. User management and the access matrix itself are admin-only no matter what the table says.
 - The web app loads the same matrix to build its menu, so staff only see the modules they can open.
+
+## Appointments and visits
+
+```mermaid
+flowchart LR
+    S[Scheduled] -->|Front desk| C[Confirmed]
+    S -->|Walk-in| I[Checked in]
+    C -->|On the day| I
+    I -->|Doctor: Start| Q[In consultation]
+    Q -->|Doctor: diagnosis + note required| D[Completed]
+    S & C -->|Reason required| X[Cancelled]
+    I -->|Reason required| X
+    S & C -->|After start time| N[No-show]
+```
+
+- **Slots:** each doctor has working days, hours, and a slot length (default Mon–Fri, 9:00–17:00, 30 minutes). Bookings must fall on a free slot, at most 180 days ahead. Overlaps are refused for the doctor *and* the patient, and a database index catches two people booking the same slot at once.
+- **Status:** Completed, cancelled, and no-show are final, and a visit can't be cancelled once the consultation has started. Rescheduling is allowed while a booking is still scheduled or confirmed; the new time is re-checked, and the booking goes back to scheduled.
+- **Nothing is deleted:** there's no delete for appointments. Cancelling keeps the record and frees the slot, and every booking, status change, reschedule, and edit is logged with who and when.
+- **The visit:** the doctor sees the patient's age, blood group, allergy and condition alerts, previous visits with their notes, and lab results.
+  - They write the diagnosis and note and add prescription lines (medication, dosage, frequency, duration, instructions), which print as a one-page sheet.
+  - They can order lab tests linked to the visit and book a follow-up in 1, 2, or 4 weeks.
+- **After completion:** the note is locked, and corrections are added as dated addenda. The check-in, start, and end times are kept, so waiting time is visible.
+- **Time zone:** all times are the hospital's local time, set by `TZ` (default `America/New_York`).
 
 ## Admissions and rooms
 
@@ -165,9 +196,9 @@ flowchart TB
 | Infrastructure | Docker Compose, Nginx |
 | Tooling | Maven, ESLint; tests with JUnit and Spring Boot Test |
 
-**Business rules live in the service layer**, and controllers only translate HTTP. The database backs up the important ones with triggers and check constraints (bill totals, bill status, room status, pharmacy stock, non-negative amounts, payroll month format).
+**Business rules live in the service layer**, and controllers only translate HTTP. The database backs up the important ones with triggers, check constraints, and unique indexes: bill totals, bill status, room status, pharmacy stock, non-negative amounts, payroll month format, doctor hours, and one active booking per slot.
 
-**Speed:** frequent reads are cached in Redis with short lifetimes (dashboard 2 minutes, patients 10, doctors 30, departments 1 hour) and cleared when the data changes. Lists are paginated, 20 rows by default.
+**Speed:** frequent reads are cached in Redis with short lifetimes (dashboard 2 minutes, patients 10, departments 1 hour) and cleared when the data changes. Lists are paginated, 20 rows by default.
 
 ## Security
 
@@ -180,6 +211,7 @@ flowchart TB
 | 🧩 Token types | Access and refresh tokens are typed, so one can't be used in place of the other |
 | 🚦 Lockout | 5 wrong passwords lock that username for 15 minutes (counter kept in Redis) |
 | 🧑‍⚖️ Permissions | Checked by the API on every request against the access matrix |
+| 🩺 Clinical records | Visit notes, diagnoses, and prescriptions are left out of the general appointment data and served only to admins, doctors, and nurses. Completed notes can't be edited, only amended |
 | 🛡️ Admin safeguards | An admin can't deactivate or delete their own account, or remove their own `ADMIN` role |
 | 🪖 Headers | Nginx sends a Content Security Policy, `X-Frame-Options: DENY`, `nosniff`, a Referrer-Policy and a Permissions-Policy |
 | 🔒 HTTPS | Cookies get the `Secure` flag on their own when the app is served over HTTPS (the API trusts `X-Forwarded-Proto`) |
@@ -284,18 +316,20 @@ The seed data creates these accounts, all with the password `Admin@123`:
 | People | `users` | Login, role, active flag |
 | | `role_permissions` | Which role can open which module |
 | Clinical | `departments` | Name and description |
-| | `doctors` | Specialization, license number, department, linked user |
-| | `patients` | Date of birth, gender, contact details, blood group |
-| | `appointments` | Patient, doctor, date and time, status |
+| | `doctors` | Specialization, license number, department, linked user, working days and hours, slot length, consultation fee |
+| | `patients` | Date of birth, gender, contact details, blood group, allergies, chronic conditions |
+| | `appointments` | Patient, doctor, start and duration, status, cancel reason, diagnosis, visit note, check-in, start, and end times |
+| | `appointment_history` | Who changed what and when, plus addenda (append-only) |
+| | `prescriptions` / `prescription_items` | One prescription per visit, with its medication lines |
 | | `rooms` | Number, type, floor, daily rate, status |
 | | `admissions` | Patient, doctor, room, diagnosis, admit and discharge dates |
-| | `lab_tests` / `lab_results` | Ordered tests and their result |
+| | `lab_tests` / `lab_results` | Ordered tests (optionally linked to the visit) and their result |
 | Pharmacy | `pharmacy_items` / `pharmacy_stock` | Catalog, reorder level, and stock batches |
 | Money | `bills` / `bill_items` | Itemized bills, discount, amount paid |
 | Staff | `employees` / `payroll` | Staff records and monthly pay |
-| Schema only | `prescriptions`, `prescription_items`, `insurance_providers`, `insurance_claims` | Tables are in place; there are no screens or endpoints for them yet |
+| Schema only | `insurance_providers`, `insurance_claims` | Tables are in place; there are no screens or endpoints for them yet |
 
-**Appointment status:** `SCHEDULED`, `CONFIRMED`, `COMPLETED`, `CANCELLED`, `NO_SHOW`.
+**Appointment status:** `SCHEDULED` → `CONFIRMED` → `CHECKED_IN` → `IN_CONSULTATION` → `COMPLETED`, or `CANCELLED` / `NO_SHOW` (see [Appointments and visits](#appointments-and-visits)).
 **Admission status:** `ADMITTED` → `DISCHARGED` or `TRANSFERRED`.
 **Room status:** `AVAILABLE`, `OCCUPIED`, `MAINTENANCE`.
 **Lab test status:** `ORDERED` → `COLLECTED` → `IN_PROGRESS` → `COMPLETED`, or `CANCELLED`.
@@ -340,11 +374,18 @@ All paths start with `/api`. Every response uses the same `ApiResponse` wrapper.
 
 | Method | Path | Does |
 | --- | --- | --- |
-| GET | `/appointments`, `/appointments/:id`, `/appointments/patient/:patientId` | List, view, or by patient |
-| GET | `/appointments/today` | Today's schedule |
-| POST | `/appointments` | Book (refused if the doctor is already booked then) |
-| PATCH | `/appointments/:id/status` | Change status, add notes |
-| DELETE | `/appointments/:id` | Delete |
+| GET | `/appointments` | List with filters: `status` (comma list), `doctorId`, `patientId`, `from`, `to`, `q` (patient name), `mine` |
+| GET | `/appointments/:id`, `/appointments/patient/:patientId` | View one, or a patient's appointments |
+| GET | `/appointments/today` | Today's schedule (any signed-in user) |
+| GET | `/appointments/slots?doctorId=&date=` | Free slots for a doctor on a day |
+| POST | `/appointments` | Book a free slot (refused on overlap, off hours, or past dates) |
+| PATCH | `/appointments/:id` | Reschedule and/or edit reason and notes (scheduled or confirmed only) |
+| PATCH | `/appointments/:id/status` | Next step in the lifecycle (`{status, note}`; cancelling needs a reason) |
+| GET | `/appointments/:id/history` | Who changed what and when |
+| GET, PUT | `/appointments/:id/visit` | Read or save the diagnosis and visit note (clinical roles; writes by the treating doctor) |
+| PUT | `/appointments/:id/prescription` | Replace the visit's medication lines (treating doctor) |
+| POST | `/appointments/:id/addendum` | Add an addendum to a completed visit (treating doctor) |
+| GET | `/appointments/patient/:patientId/visits` | A patient's completed visits with their notes (clinical roles) |
 | GET | `/admissions`, `/admissions/:id`, `/admissions/patient/:patientId` | List, view, or by patient |
 | POST | `/admissions` | Admit (room must be available) |
 | PATCH | `/admissions/:id/discharge` | Discharge and free the room |
@@ -357,7 +398,7 @@ All paths start with `/api`. Every response uses the same `ApiResponse` wrapper.
 | Method | Path | Does |
 | --- | --- | --- |
 | GET | `/lab`, `/lab/:id`, `/lab/patient/:patientId` | List, view, or by patient |
-| POST | `/lab` | Order a test |
+| POST | `/lab` | Order a test (optional `appointmentId` links it to a visit) |
 | PATCH | `/lab/:id/status` | Move the test forward |
 | POST | `/lab/:id/result` | Record the result (once) |
 | GET | `/pharmacy`, `/pharmacy/low-stock` | Catalog, items below reorder level |
@@ -382,6 +423,7 @@ All paths start with `/api`. Every response uses the same `ApiResponse` wrapper.
 | Method | Path | Does |
 | --- | --- | --- |
 | GET | `/dashboard/stats` | Dashboard totals (any signed-in user) |
+| GET | `/dashboard/trends` | Daily admissions, appointments, and lab orders for the last 7 days (any signed-in user) |
 | GET | `/users`, `/users/:id` | List or view users 👑 |
 | POST, PUT, DELETE | `/users`, `/users/:id` | Add, edit, delete 👑 |
 | PATCH | `/users/:id/toggle-active` | Turn an account on or off 👑 |
@@ -407,6 +449,7 @@ Copy `.env.example` to `.env` in the root and fill it in.
 | `JWT_EXPIRATION_MS` | Optional | Access token lifetime (default 24 hours) |
 | `JWT_REFRESH_EXPIRATION_MS` | Optional | Refresh token lifetime (default 7 days) |
 | `VITE_API_URL` | Optional | Where the Vite dev server sends `/api` (default `http://localhost:8080`) |
+| `TZ` | Optional | The hospital's time zone. It sets "today", working hours, and "in the past" for bookings (default `America/New_York`) |
 
 The browser always calls the API on its own address (`/api`): Nginx forwards it in Docker and Vite in development. That keeps the sign-in cookies first-party.
 
@@ -436,12 +479,13 @@ Hospital-App/
 │       │   ├── mapper/        MapStruct mappers
 │       │   └── exception/     one handler that maps errors to HTTP codes
 │       ├── main/resources/
-│       │   └── db/migration/  schema, seed data, triggers and views, role permissions
-│       └── test/              access matrix tests
+│       │   └── db/migration/  schema, seed data, triggers and views, role permissions,
+│       │                      scheduling (V7), consultations (V8)
+│       └── test/              access matrix and appointment rule tests
 ├── frontend/                  React web app
 │   └── src/
 │       ├── pages/             one page per module, plus login and profile
-│       ├── components/        layout (sidebar, header) and UI kit
+│       ├── components/        layout (sidebar, header), UI kit, consultation panel
 │       ├── api/               Axios client and endpoints
 │       ├── store/             Zustand (auth, permissions, notifications)
 │       └── utils/             permission helpers
