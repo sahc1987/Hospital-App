@@ -7,6 +7,8 @@ public record DashboardStats(
         long todayAppointments,
         long currentAdmissions,
         long availableRooms,
+        long occupiedRooms,
+        long totalRooms,
         long pendingLabTests,
         long lowStockItems,
         long pendingBills,

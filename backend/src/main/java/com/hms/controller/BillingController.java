@@ -24,7 +24,7 @@ public class BillingController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<Bill>>> list(
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(service.findAll(pageable)));
     }
 
@@ -35,7 +35,7 @@ public class BillingController {
 
     @GetMapping("/patient/{patientId}")
     public ResponseEntity<ApiResponse<Page<Bill>>> byPatient(
-            @PathVariable Long patientId, @PageableDefault(size = 20) Pageable pageable) {
+            @PathVariable Long patientId, @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(service.findByPatient(patientId, pageable)));
     }
 

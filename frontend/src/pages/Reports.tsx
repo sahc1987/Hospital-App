@@ -7,7 +7,7 @@ import {
   PieChart, Pie, Cell, Legend, LineChart, Line
 } from 'recharts'
 
-const COLORS = ['#F45D22', '#1C1C1C', '#22C55E', '#3B82F6', '#F59E0B']
+const COLORS = ['#4C6FDB', '#F26D6D', '#1FA98F', '#E86BC4', '#E89B12'] // primary, coral, mint, pink, warning
 
 const deptData = [
   { name: 'Cardiology',   patients: 120 },
@@ -59,13 +59,13 @@ export default function Reports() {
           <p className="text-xs text-ink-muted mb-5">Current period distribution</p>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={deptData} barSize={28}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F4F4F5" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#71717A' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#71717A' }} axisLine={false} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E4E8F5" vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#646C8F' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: '#646C8F' }} axisLine={false} tickLine={false} />
               <Tooltip
                 contentStyle={{ border: 'none', borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: 12 }}
               />
-              <Bar dataKey="patients" fill="#F45D22" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="patients" fill="#4C6FDB" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -95,15 +95,15 @@ export default function Reports() {
         <p className="text-xs text-ink-muted mb-5">Monthly admissions vs discharges</p>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={admissionTrend}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F4F4F5" vertical={false} />
-            <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#71717A' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: '#71717A' }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#E4E8F5" vertical={false} />
+            <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#646C8F' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: '#646C8F' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={{ border: 'none', borderRadius: 12, fontSize: 12 }} />
             <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-            <Line type="monotone" dataKey="admissions" stroke="#F45D22" strokeWidth={2.5}
-              dot={{ r: 4, fill: '#F45D22' }} activeDot={{ r: 6 }} />
-            <Line type="monotone" dataKey="discharges" stroke="#1C1C1C" strokeWidth={2}
-              dot={{ r: 3, fill: '#1C1C1C' }} strokeDasharray="5 3" />
+            <Line type="monotone" dataKey="admissions" stroke="#4C6FDB" strokeWidth={2.5}
+              dot={{ r: 4, fill: '#4C6FDB' }} activeDot={{ r: 6 }} />
+            <Line type="monotone" dataKey="discharges" stroke="#F26D6D" strokeWidth={2}
+              dot={{ r: 3, fill: '#F26D6D' }} strokeDasharray="5 3" />
           </LineChart>
         </ResponsiveContainer>
       </div>

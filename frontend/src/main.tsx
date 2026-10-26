@@ -26,12 +26,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           toastOptions={{
             duration: 4000,
             style: {
-              background: '#1C1C1C',
+              background: '#2B3D80', // surface-dark
               color: '#fff',
               borderRadius: '12px',
               fontSize: '14px',
             },
-            success: { iconTheme: { primary: '#F45D22', secondary: '#fff' } },
+            success: { iconTheme: { primary: '#1FA98F', secondary: '#fff' } }, // success
           }}
         />
       </BrowserRouter>

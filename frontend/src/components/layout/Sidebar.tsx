@@ -1,8 +1,9 @@
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarDays, Stethoscope, Building2,
   BedDouble, FlaskConical, Pill, DollarSign, UserCog, BarChart3,
-  LogOut, ChevronRight, HeartPulse, Shield, KeyRound, ShieldCheck
+  LogOut, HeartPulse, KeyRound, ShieldCheck, PanelLeftOpen, PanelLeftClose,
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { useAuthStore } from '@/store/authStore'
@@ -54,10 +55,46 @@ const navGroups = [
   },
 ]
 
+const STORAGE_KEY = 'hms-sidebar-expanded'
+
+function readExpanded(): boolean {
+  try { return localStorage.getItem(STORAGE_KEY) === '1' } catch { return false }
+}
+
+type Tip = { label: string; top: number; left: number }
+
 export default function Sidebar() {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const role = user?.role as UserRole | undefined
+  const [expanded, setExpanded] = useState(readExpanded)
+
+  // One shared tooltip for the collapsed rail. position:fixed escapes the nav's overflow clipping.
+  // WCAG 1.4.13: hoverable (no gap: padding sits inside the tip), dismissible (Escape), persistent.
+  const [tip, setTip] = useState<Tip | null>(null)
+  const hideTimer = useRef<number>()
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setTip(null) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
+  function toggle() {
+    setExpanded((v) => {
+      try { localStorage.setItem(STORAGE_KEY, v ? '0' : '1') } catch { /* storage blocked: session-only */ }
+      return !v
+    })
+    setTip(null)
+  }
+
+  function showTip(label: string, el: HTMLElement) {
+    if (expanded) return
+    window.clearTimeout(hideTimer.current)
+    const r = el.getBoundingClientRect()
+    setTip({ label, top: r.top + r.height / 2, left: r.right })
+  }
+  const hideTipSoon = () => { hideTimer.current = window.setTimeout(() => setTip(null), 120) }
 
   function handleLogout() {
     // Fire-and-forget: revoke tokens server-side, but never block leaving on it
@@ -67,92 +104,129 @@ export default function Sidebar() {
     navigate('/login')
   }
 
+  const visibleGroups = navGroups
+    .map((g) => ({ ...g, items: role ? g.items.filter((i) => canAccess(role, i.to)) : [] }))
+    .filter((g) => g.items.length > 0)
+
+  // Rail is primary-600 (not 500) so white text clears 4.5:1 at small sizes
   return (
-    <aside className="flex h-screen w-64 flex-col bg-surface-dark text-white overflow-hidden flex-shrink-0">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-border-dark">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-          <HeartPulse size={20} className="text-white" />
+    <aside
+      className={cn(
+        'm-4 mr-0 flex flex-col rounded-[1.75rem] bg-primary-600 text-white shadow-primary flex-shrink-0',
+        'motion-safe:transition-[width] motion-safe:duration-300',
+        expanded ? 'w-64' : 'w-[5.25rem]',
+      )}
+    >
+      {/* Brand */}
+      <div className={cn('flex items-center gap-3 pt-6 pb-4', expanded ? 'px-5' : 'justify-center')}>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+          <HeartPulse size={22} aria-hidden="true" />
         </div>
-        <div>
-          <p className="font-bold text-sm leading-none">HMS</p>
-          <p className="text-[11px] text-ink-subtle mt-0.5">Hospital System</p>
-        </div>
+        {expanded && (
+          <div className="leading-tight">
+            <p className="text-lg font-bold">HMS</p>
+            <p className="text-[11px] text-white/85">Hospital System</p>
+          </div>
+        )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
-        {navGroups.map((group) => {
-          const visibleItems = role
-            ? group.items.filter((item) => canAccess(role, item.to))
-            : []
-          if (visibleItems.length === 0) return null
-          return (
-            <div key={group.label}>
-              <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-ink-subtle">
+      <button
+        onClick={toggle}
+        aria-expanded={expanded}
+        aria-controls="sidebar-nav"
+        className={cn(
+          'mb-2 flex items-center gap-3 rounded-xl text-xs font-medium hover:bg-white/10 transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white',
+          expanded ? 'mx-3 px-3 py-2' : 'mx-auto h-9 w-9 justify-center',
+        )}
+      >
+        {expanded ? <PanelLeftClose size={16} aria-hidden="true" /> : <PanelLeftOpen size={16} aria-hidden="true" />}
+        <span className={expanded ? '' : 'sr-only'}>{expanded ? 'Collapse menu' : 'Expand menu'}</span>
+      </button>
+
+      <nav id="sidebar-nav" aria-label="Main" className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4">
+        {visibleGroups.map((group, gi) => (
+          <div key={group.label} className={gi > 0 ? 'mt-3' : ''}>
+            {expanded ? (
+              <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/85">
                 {group.label}
               </p>
-              <ul className="space-y-0.5">
-                {visibleItems.map(({ to, icon: Icon, label }) => (
-                  <li key={to}>
-                    <NavLink
-                      to={to}
-                      end={to === '/'}
-                      className={({ isActive }) =>
-                        cn(
-                          'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
-                          isActive
-                            ? 'bg-primary/15 text-primary'
-                            : 'text-zinc-400 hover:bg-white/5 hover:text-white',
-                        )
-                      }
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <Icon size={16} className={isActive ? 'text-primary' : ''} />
-                          <span className="flex-1">{label}</span>
-                          {isActive && <ChevronRight size={14} className="text-primary" />}
-                        </>
-                      )}
-                    </NavLink>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )
-        })}
+            ) : (
+              gi > 0 && <div className="mx-4 mb-3 h-px bg-white/20" aria-hidden="true" />
+            )}
+            <ul className="space-y-1" aria-label={expanded ? undefined : group.label}>
+              {group.items.map(({ to, icon: Icon, label }) => (
+                <li key={to}>
+                  <NavLink
+                    to={to}
+                    end={to === '/'}
+                    onPointerEnter={(e) => showTip(label, e.currentTarget)}
+                    onPointerLeave={hideTipSoon}
+                    onFocus={(e) => showTip(label, e.currentTarget)}
+                    onBlur={() => setTip(null)}
+                    className={({ isActive }) => cn(
+                      'flex items-center gap-3 rounded-xl text-sm font-medium transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white',
+                      expanded ? 'px-3 py-2.5' : 'mx-auto h-11 w-11 justify-center',
+                      isActive ? 'bg-white text-primary-700 shadow-sm' : 'text-white hover:bg-white/10',
+                    )}
+                  >
+                    <Icon size={18} aria-hidden="true" />
+                    {/* Always in the a11y tree; visually shown only when expanded */}
+                    <span className={expanded ? 'flex-1 truncate' : 'sr-only'}>{label}</span>
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </nav>
 
-      {/* User footer */}
-      <div className="border-t border-border-dark p-3">
-        <div className="flex items-center gap-3 rounded-xl p-3 hover:bg-white/5 transition-all group">
-          <button
-            onClick={() => navigate('/profile')}
-            className="flex items-center gap-3 flex-1 min-w-0 text-left"
-            title="My profile"
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary font-semibold text-sm">
-              {user?.fullName?.charAt(0) ?? 'U'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.fullName ?? user?.username}</p>
-              <p className="text-[11px] text-zinc-500 capitalize">{user?.role?.toLowerCase().replace('_', ' ')}</p>
-            </div>
-          </button>
-          <button
-            onClick={handleLogout}
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-500 hover:text-danger shrink-0"
-            title="Logout"
-          >
-            <LogOut size={15} />
-          </button>
-        </div>
-
-        <div className="mt-1 flex items-center gap-1.5 px-3">
-          <Shield size={11} className="text-zinc-600" />
-          <span className="text-[10px] text-zinc-600">HIPAA / GDPR Ready</span>
-        </div>
+      {/* Footer: profile + logout (always visible — it used to be hover-only) */}
+      <div className={cn('flex gap-2 border-t border-white/15 p-3', expanded ? 'items-center' : 'flex-col items-center')}>
+        <button
+          onClick={() => navigate('/profile')}
+          className={cn(
+            'flex min-w-0 items-center gap-3 rounded-xl p-1.5 hover:bg-white/10 transition-colors text-left',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white',
+            expanded && 'flex-1',
+          )}
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-primary-700 font-semibold text-sm" aria-hidden="true">
+            {user?.fullName?.charAt(0) ?? 'U'}
+          </span>
+          <span className={expanded ? 'min-w-0' : 'sr-only'}>
+            <span className="block text-sm font-medium truncate">{user?.fullName ?? user?.username}</span>
+            <span className="block text-[11px] text-white/85 capitalize">{user?.role?.toLowerCase().replace('_', ' ')}</span>
+            <span className="sr-only">, open profile</span>
+          </span>
+        </button>
+        <button
+          onClick={handleLogout}
+          className={cn(
+            'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-white/10 transition-colors',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white',
+          )}
+        >
+          <LogOut size={17} aria-hidden="true" />
+          <span className="sr-only">Log out</span>
+        </button>
       </div>
+
+      {tip && !expanded && (
+        // aria-hidden: duplicates the link's own (sr-only) label
+        <div
+          aria-hidden="true"
+          onPointerEnter={() => window.clearTimeout(hideTimer.current)}
+          onPointerLeave={() => setTip(null)}
+          style={{ top: tip.top, left: tip.left }}
+          className="fixed z-50 -translate-y-1/2 pl-3"
+        >
+          <div className="rounded-lg bg-surface-dark px-3 py-1.5 text-xs font-medium text-white shadow-card whitespace-nowrap">
+            {tip.label}
+          </div>
+        </div>
+      )}
     </aside>
   )
 }

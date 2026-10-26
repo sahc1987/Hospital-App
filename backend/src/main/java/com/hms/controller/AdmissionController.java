@@ -22,7 +22,7 @@ public class AdmissionController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<Admission>>> list(
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(service.findAll(pageable)));
     }
 
@@ -33,7 +33,7 @@ public class AdmissionController {
 
     @GetMapping("/patient/{patientId}")
     public ResponseEntity<ApiResponse<Page<Admission>>> byPatient(
-            @PathVariable Long patientId, @PageableDefault(size = 20) Pageable pageable) {
+            @PathVariable Long patientId, @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(service.findByPatient(patientId, pageable)));
     }
 

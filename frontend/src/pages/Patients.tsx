@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search, Phone, Mail, Pencil, Trash2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -13,8 +14,12 @@ import type { Patient } from '@/types'
 import { format } from 'date-fns'
 
 export default function Patients() {
-  const [search, setSearch] = useState('')
+  // Search lives in the URL (?q=) so the header search can deep-link here
+  const [params, setParams] = useSearchParams()
+  const search = params.get('q') ?? ''
+  const setSearch = (q: string) => setParams(q ? { q } : {}, { replace: true })
   const [page, setPage] = useState(0)
+  useEffect(() => setPage(0), [search])
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Patient | null>(null)
   const qc = useQueryClient()
@@ -75,8 +80,9 @@ export default function Patients() {
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-subtle" />
           <input
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(0) }}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search patients..."
+            aria-label="Search patients"
             className="input pl-9"
           />
         </div>

@@ -134,12 +134,22 @@ export interface DashboardStats {
   todayAppointments: number
   currentAdmissions: number
   availableRooms: number
+  occupiedRooms: number
+  totalRooms: number   // available + occupied + maintenance
   pendingLabTests: number
   lowStockItems: number
   pendingBills: number
   monthlyRevenue: number
   totalDoctors: number
   totalEmployees: number
+}
+
+/** Daily counts for the last 7 days, oldest first; arrays align with `days` (ISO dates). */
+export interface DashboardTrends {
+  days: string[]
+  admissions: number[]
+  appointments: number[]
+  labTests: number[]
 }
 
 export interface PageResponse<T> {

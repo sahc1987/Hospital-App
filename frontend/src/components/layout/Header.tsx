@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, Bell, Settings, Command, CheckCheck, Trash2, Info, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react'
+import { Search, Bell, Settings, CheckCheck, Trash2, Info, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useNotificationsStore } from '@/store/notificationsStore'
 import type { AppNotification } from '@/store/notificationsStore'
 import { cn } from '@/utils/cn'
+import { canAccess } from '@/utils/permissions'
+import type { UserRole } from '@/types'
 import { formatDistanceToNow } from 'date-fns'
 
 const routeTitles: Record<string, { title: string; subtitle: string }> = {
@@ -25,6 +27,10 @@ const routeTitles: Record<string, { title: string; subtitle: string }> = {
   '/access-matrix': { title: 'Access Matrix',       subtitle: 'Role-based access control' },
   '/profile':       { title: 'My Profile',          subtitle: 'Account information and security' },
 }
+
+const iconBtn =
+  'relative flex h-11 w-11 items-center justify-center rounded-2xl bg-surface shadow-card hover:shadow-card-hover transition ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2'
 
 function NotifIcon({ type }: { type: AppNotification['type'] }) {
   const cls = 'h-4 w-4 shrink-0'
@@ -58,6 +64,14 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  const canSearch = !!user && canAccess(user.role as UserRole, '/patients')
+
+  function submitSearch(e: React.FormEvent) {
+    e.preventDefault()
+    const q = query.trim()
+    navigate(q ? `/patients?q=${encodeURIComponent(q)}` : '/patients')
+  }
+
   function openBell() {
     setBellOpen((v) => !v)
   }
@@ -67,7 +81,8 @@ export default function Header() {
   }
 
   return (
-    <header className="flex items-center justify-between border-b border-border bg-surface px-6 py-4 gap-4 relative">
+    // Sits on the lavender canvas (no bar): floating search pill + square white icon buttons
+    <header className="flex items-center justify-between px-6 pt-6 pb-2 gap-4 relative">
       {/* Page title */}
       <div>
         <h1 className="text-xl font-bold text-ink">{page.title}</h1>
@@ -75,19 +90,26 @@ export default function Header() {
       </div>
 
       {/* Search */}
-      <div className="relative flex-1 max-w-sm">
-        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-subtle" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search..."
-          className="w-full rounded-full border border-border bg-surface-card pl-9 pr-4 py-2 text-sm text-ink placeholder:text-ink-subtle outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition"
-        />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-ink-subtle">
-          <Command size={10} />
-          <span className="text-[10px]">K</span>
-        </div>
-      </div>
+      {/* Searches patients (name / phone / email) on the Patients page. Hidden for roles without it. */}
+      {canSearch ? (
+        <form role="search" onSubmit={submitSearch} className="relative flex-1 max-w-md">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search patients by name, phone or email…"
+            aria-label="Search patients"
+            className="w-full rounded-2xl bg-surface pl-5 pr-12 py-3 text-sm text-ink shadow-card placeholder:text-ink-muted outline-none focus:ring-2 focus:ring-primary/30 transition"
+          />
+          <button
+            type="submit"
+            aria-label="Search"
+            className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-xl text-primary hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          >
+            <Search size={16} aria-hidden="true" />
+          </button>
+        </form>
+      ) : <div className="flex-1" />}
 
       {/* Actions */}
       <div className="flex items-center gap-2">
@@ -96,19 +118,20 @@ export default function Header() {
         <div ref={bellRef} className="relative">
           <button
             onClick={openBell}
-            className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface hover:bg-surface-card transition"
-            title="Notifications"
+            className={iconBtn}
+            aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
+            aria-expanded={bellOpen}
           >
-            <Bell size={16} className="text-ink-muted" />
+            <Bell size={17} className="text-primary" aria-hidden="true" />
             {unread > 0 && (
-              <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white ring-2 ring-surface">
+              <span aria-hidden="true" className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-danger-ink text-[9px] font-bold text-white ring-2 ring-surface">
                 {unread > 9 ? '9+' : unread}
               </span>
             )}
           </button>
 
           {bellOpen && (
-            <div className="absolute right-0 top-11 z-50 w-80 rounded-2xl border border-border bg-surface shadow-xl overflow-hidden">
+            <div className="absolute right-0 top-14 z-50 w-80 rounded-card bg-surface shadow-card-hover overflow-hidden">
               {/* Bell header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <div>
@@ -180,19 +203,15 @@ export default function Header() {
         </div>
 
         {/* Settings → profile */}
-        <button
-          onClick={() => navigate('/profile')}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface hover:bg-surface-card transition"
-          title="Account settings"
-        >
-          <Settings size={16} className="text-ink-muted" />
+        <button onClick={() => navigate('/profile')} className={iconBtn} aria-label="Account settings">
+          <Settings size={17} className="text-primary" aria-hidden="true" />
         </button>
 
         {/* Avatar → profile */}
         <button
           onClick={() => navigate('/profile')}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm hover:bg-primary/20 transition"
-          title="My profile"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white font-semibold text-sm shadow-primary hover:bg-primary-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
+          aria-label="My profile"
         >
           {user?.fullName?.charAt(0) ?? 'A'}
         </button>

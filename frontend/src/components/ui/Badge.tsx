@@ -3,12 +3,12 @@ import { cn } from '@/utils/cn'
 type Variant = 'default' | 'success' | 'danger' | 'warning' | 'info' | 'orange' | 'dark'
 
 const variants: Record<Variant, string> = {
-  default: 'bg-zinc-100 text-zinc-700',
-  success: 'bg-success-light text-success',
-  danger:  'bg-danger-light text-danger',
-  warning: 'bg-warning-light text-warning',
-  info:    'bg-info-light text-info',
-  orange:  'bg-primary/10 text-primary',
+  default: 'bg-surface-card text-ink-muted',
+  success: 'bg-success-light text-success-ink',
+  danger:  'bg-danger-light text-danger-ink',
+  warning: 'bg-warning-light text-warning-ink',
+  info:    'bg-info-light text-info-ink',
+  orange:  'bg-primary-50 text-primary-700', // name kept for existing callers; now the brand tint
   dark:    'bg-surface-dark text-white',
 }
 

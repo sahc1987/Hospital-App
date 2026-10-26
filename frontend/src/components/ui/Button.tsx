@@ -5,9 +5,9 @@ type Variant = 'primary' | 'secondary' | 'dark' | 'danger' | 'ghost'
 type Size = 'sm' | 'md' | 'lg'
 
 const variantClasses: Record<Variant, string> = {
-  primary:   'bg-primary text-white shadow-orange hover:bg-primary-600 hover:shadow-none',
-  secondary: 'bg-surface border border-border text-ink hover:bg-surface-card',
-  dark:      'bg-surface-dark text-white hover:bg-black',
+  primary:   'bg-primary text-white shadow-primary hover:bg-primary-600 hover:shadow-none',
+  secondary: 'bg-primary-50 text-primary-700 hover:bg-primary-100',
+  dark:      'bg-surface-dark text-white hover:bg-surface-darker',
   danger:    'bg-danger text-white hover:bg-red-600',
   ghost:     'text-ink-muted hover:bg-surface-card hover:text-ink',
 }
@@ -39,7 +39,8 @@ export function Button({
     <button
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center font-semibold rounded-full transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center font-semibold rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2',
         variantClasses[variant],
         sizeClasses[size],
         className,

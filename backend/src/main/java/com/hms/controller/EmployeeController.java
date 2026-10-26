@@ -23,7 +23,7 @@ public class EmployeeController {
     @GetMapping
     public ResponseEntity<ApiResponse<Page<Employee>>> list(
             @RequestParam(required = false) String name,
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(service.findAll(name, pageable)));
     }
 

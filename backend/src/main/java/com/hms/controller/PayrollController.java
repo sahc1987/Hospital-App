@@ -22,13 +22,13 @@ public class PayrollController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<Payroll>>> list(
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(service.findAll(pageable)));
     }
 
     @GetMapping("/employee/{employeeId}")
     public ResponseEntity<ApiResponse<Page<Payroll>>> byEmployee(
-            @PathVariable Long employeeId, @PageableDefault(size = 20) Pageable pageable) {
+            @PathVariable Long employeeId, @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(service.findByEmployee(employeeId, pageable)));
     }
 

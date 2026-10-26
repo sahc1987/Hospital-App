@@ -30,7 +30,7 @@ export default function PayrollPage() {
       {/* Summary */}
       <div className="card-dark flex items-center justify-between p-5 rounded-2xl">
         <div>
-          <p className="text-sm text-zinc-400">Total Payroll This Month</p>
+          <p className="text-sm text-white/80">Total Payroll This Month</p>
           <p className="text-3xl font-bold text-white mt-1">${totalPayout.toLocaleString()}</p>
         </div>
         <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-primary/20">

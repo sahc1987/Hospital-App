@@ -52,10 +52,10 @@ export default function Login() {
         <div className="mb-auto">
           <h2 className="text-4xl font-bold leading-tight mb-4">
             Modern Hospital<br />
-            <span className="text-primary">Management</span><br />
+            <span className="text-primary-200">Management</span><br />
             System
           </h2>
-          <p className="text-zinc-400 text-sm leading-relaxed max-w-xs">
+          <p className="text-white/80 text-sm leading-relaxed max-w-xs">
             A comprehensive solution to digitize and automate hospital operations — from patients to payroll.
           </p>
         </div>
@@ -63,7 +63,7 @@ export default function Login() {
         {/* Feature chips */}
         <div className="flex flex-wrap gap-2">
           {['JWT Auth', 'RBAC', 'Real-time', 'HIPAA Ready', 'Redis Cache', 'PostgreSQL'].map((f) => (
-            <span key={f} className="rounded-full bg-white/10 px-3 py-1 text-xs text-zinc-300">{f}</span>
+            <span key={f} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/90">{f}</span>
           ))}
         </div>
       </div>

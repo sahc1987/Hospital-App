@@ -24,7 +24,7 @@ public class AppointmentController {
     private final AppointmentService service;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<Appointment>>> list(@PageableDefault(size = 20) Pageable pageable) {
+    public ResponseEntity<ApiResponse<Page<Appointment>>> list(@PageableDefault(size = 20, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(service.findAll(pageable)));
     }
 
@@ -40,7 +40,7 @@ public class AppointmentController {
 
     @GetMapping("/patient/{patientId}")
     public ResponseEntity<ApiResponse<Page<Appointment>>> byPatient(
-            @PathVariable Long patientId, @PageableDefault(size = 10) Pageable pageable) {
+            @PathVariable Long patientId, @PageableDefault(size = 10, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(service.findByPatient(patientId, pageable)));
     }
 

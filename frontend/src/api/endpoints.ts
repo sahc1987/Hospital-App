@@ -2,7 +2,7 @@ import client from './client'
 import type {
   ApiResponse, PageResponse,
   Patient, Doctor, Department, Appointment, Room, Admission,
-  LabTest, Bill, PharmacyItem, Employee, Payroll, DashboardStats, AuthUser, SystemUser
+  LabTest, Bill, PharmacyItem, Employee, Payroll, DashboardStats, DashboardTrends, AuthUser, SystemUser
 } from '@/types'
 import type { UserRole } from '@/types'
 
@@ -26,6 +26,7 @@ export const authApi = {
 // Dashboard
 export const dashboardApi = {
   stats: () => client.get<ApiResponse<DashboardStats>>('/dashboard/stats'),
+  trends: () => client.get<ApiResponse<DashboardTrends>>('/dashboard/trends'),
 }
 
 // Patients

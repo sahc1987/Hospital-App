@@ -18,7 +18,7 @@ export function StatCard({ title, value, icon, trend, dark, accent, className }:
     return (
       <div className={cn('card-dark flex flex-col gap-4 min-h-[130px]', className)}>
         <div className="flex items-start justify-between">
-          <p className="text-sm font-medium text-zinc-400">{title}</p>
+          <p className="text-sm font-medium text-white/80">{title}</p>
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10">
             {icon}
           </div>
@@ -26,7 +26,8 @@ export function StatCard({ title, value, icon, trend, dark, accent, className }:
         <div>
           <p className="text-3xl font-bold text-white">{value}</p>
           {trend !== undefined && (
-            <div className={cn('flex items-center gap-1 mt-1 text-xs font-medium', positive ? 'text-success' : 'text-danger')}>
+            // white, not green/red: tinted text fails contrast on the blue card
+            <div className="flex items-center gap-1 mt-1 text-xs font-medium text-white">
               {positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
               <span>{Math.abs(trend)}% last month</span>
             </div>
@@ -42,7 +43,7 @@ export function StatCard({ title, value, icon, trend, dark, accent, className }:
         <p className="text-sm font-medium text-ink-muted">{title}</p>
         <div className={cn(
           'flex h-9 w-9 items-center justify-center rounded-xl',
-          accent ? 'bg-primary text-white shadow-orange' : 'bg-surface-card text-ink-muted',
+          accent ? 'bg-primary text-white shadow-primary' : 'bg-primary-50 text-primary',
         )}>
           {icon}
         </div>

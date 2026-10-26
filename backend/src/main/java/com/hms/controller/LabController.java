@@ -23,7 +23,7 @@ public class LabController {
     private final LabTestService service;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<LabTest>>> list(@PageableDefault(size = 20) Pageable pageable) {
+    public ResponseEntity<ApiResponse<Page<LabTest>>> list(@PageableDefault(size = 20, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(service.findAll(pageable)));
     }
 
@@ -34,7 +34,7 @@ public class LabController {
 
     @GetMapping("/patient/{patientId}")
     public ResponseEntity<ApiResponse<Page<LabTest>>> byPatient(
-            @PathVariable Long patientId, @PageableDefault(size = 20) Pageable pageable) {
+            @PathVariable Long patientId, @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(service.findByPatient(patientId, pageable)));
     }
 
