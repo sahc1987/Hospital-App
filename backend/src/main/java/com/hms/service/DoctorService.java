@@ -3,13 +3,13 @@ package com.hms.service;
 import com.hms.dto.doctor.DoctorRequest;
 import com.hms.entity.Department;
 import com.hms.entity.Doctor;
+import com.hms.exception.BadRequestException;
 import com.hms.exception.ResourceNotFoundException;
 import com.hms.mapper.DoctorMapper;
 import com.hms.repository.DepartmentRepository;
 import com.hms.repository.DoctorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,8 +25,8 @@ public class DoctorService {
     private final DepartmentRepository deptRepo;
     private final DoctorMapper mapper;
 
+    // ponytail: uncached — Redis can't serialize the lazy department proxy (was a 500); PK lookups are cheap
     @Transactional(readOnly = true)
-    @Cacheable(value = "doctors", key = "#id")
     public Doctor findById(Long id) {
         return repo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Doctor", id));
     }
@@ -38,7 +38,6 @@ public class DoctorService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "doctors", key = "'dept-' + #deptId")
     public List<Doctor> findByDepartment(Long deptId) {
         return repo.findByDepartmentId(deptId);
     }
@@ -46,6 +45,7 @@ public class DoctorService {
     @Transactional
     @CacheEvict(value = "doctors", allEntries = true)
     public Doctor create(DoctorRequest request) {
+        checkHours(request);
         Doctor doctor = mapper.toEntity(request);
         doctor.setDepartment(resolveDepartment(request.departmentId()));
         return repo.save(doctor);
@@ -54,6 +54,7 @@ public class DoctorService {
     @Transactional
     @CacheEvict(value = "doctors", allEntries = true)
     public Doctor update(Long id, DoctorRequest request) {
+        checkHours(request);
         Doctor existing = repo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Doctor", id));
         mapper.updateEntity(request, existing);
         existing.setDepartment(resolveDepartment(request.departmentId()));
@@ -65,6 +66,12 @@ public class DoctorService {
     public void delete(Long id) {
         if (!repo.existsById(id)) throw new ResourceNotFoundException("Doctor", id);
         repo.deleteById(id);
+    }
+
+    private static void checkHours(DoctorRequest r) {
+        if (!r.workEnd().isAfter(r.workStart())) {
+            throw new BadRequestException("Working hours must end after they start");
+        }
     }
 
     private Department resolveDepartment(Long departmentId) {

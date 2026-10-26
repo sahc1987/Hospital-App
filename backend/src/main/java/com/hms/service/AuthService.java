@@ -31,6 +31,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final TokenBlacklistService blacklistService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final UserService userService;
 
     // ponytail: per-username lockout — lets an attacker lock a known account for 15 min; add per-IP limits if that bites
     private static final int MAX_FAILED_LOGINS = 5;
@@ -60,7 +61,7 @@ public class AuthService {
     }
 
     public UserResponse getMe(User user) {
-        return UserResponse.from(user);
+        return userService.get(user.getId()); // includes the linked doctor/employee record
     }
 
     @Transactional

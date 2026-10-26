@@ -68,6 +68,25 @@ The frontend fetches the matrix from `GET /api/permissions` in `DashboardLayout`
   - V3 installs DB triggers: `updated_at` timestamps, room status synced on admission and discharge (`fn_sync_room_on_admission`), and bill totals recalculated from bill items (`fn_recalc_bill_total`). Don't duplicate that logic in Java.
   - V4 converted the Postgres enum columns to TEXT, so entities use `@Enumerated(EnumType.STRING)`.
 
+### Appointments
+- **Times:** all times are naive local times in the hospital zone, `TZ` in `docker-compose.yml` (default `America/New_York`). The JVM evaluates "now", "today" and working hours in that zone, while Postgres stays in UTC, so take timestamps from Java, never from `NOW()`.
+- **Booking:** bookings must land on a doctor's slot grid (`doctors.work_start`/`work_end`/`slot_minutes`/`work_days`, from V7), up to 180 days ahead.
+  - Overlaps for both the doctor and the patient are checked in `AppointmentService.checkSlot`.
+  - Partial unique indexes back that check up against races.
+  - Each appointment stores `duration_minutes` at booking time.
+- **Lifecycle:** `AppointmentStatus.next()` holds the allowed transitions. COMPLETED, CANCELLED and NO_SHOW are final, and a cancel needs a reason.
+  - Every create, status change, reschedule and edit is appended to `appointment_history`.
+  - There is no DELETE endpoint, on purpose.
+- **Roles:** ADMIN, RECEPTIONIST and NURSE book, reschedule and cancel anything. A doctor can do all of that only in their own diary, through the user→doctor link (`doctors.user_id`). Only the doctor or an admin can mark an appointment COMPLETED.
+- `pages/Appointments.tsx` mirrors these rules only to decide which buttons to show.
+- **Consultation (V8):** the flow continues CHECKED_IN → IN_CONSULTATION → COMPLETED, and only the treating doctor or an admin can move it.
+  - **Notes:** `diagnosis` and `visit_note` are required to complete. After completion they're locked; corrections go into `appointment_history` as ADDENDUM rows.
+  - **Privacy:** those fields are `@JsonIgnore` on `Appointment` because front-desk roles can read appointments. They're served only through `GET /{id}/visit` and `/patient/{id}/visits` to ADMIN, DOCTOR and NURSE.
+  - **Prescriptions:** they use the V1 `prescriptions`/`prescription_items` tables through JdbcTemplate, with no entities.
+  - **Lab orders:** an order from a visit sets `lab_tests.appointment_id`.
+  - **Billing:** completing a visit creates a PENDING bill when `doctors.consultation_fee` is greater than 0.
+  - UI: `components/appointments/ConsultationPanel.tsx`.
+
 ### Frontend conventions
 - `src/api/endpoints.ts` holds one typed function per backend call, built on the shared axios `client`.
 - Server state uses TanStack Query in the pages. Forms use react-hook-form with zod schemas.

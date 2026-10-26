@@ -63,6 +63,7 @@ public class LabTestService {
                 .testName(request.testName())
                 .orderedDate(LocalDateTime.now())
                 .notes(request.notes())
+                .appointmentId(request.appointmentId())
                 .build();
         return labTestRepo.save(test);
     }

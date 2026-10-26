@@ -7,5 +7,6 @@ public record LabTestRequest(
         @NotNull Long patientId,
         Long doctorId,
         @NotBlank String testName,
-        String notes
+        String notes,
+        Long appointmentId   // optional: links the order to the visit it came from
 ) {}

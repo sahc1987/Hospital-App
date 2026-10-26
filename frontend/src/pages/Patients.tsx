@@ -1,17 +1,44 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Phone, Mail, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Search, Phone, Mail, Pencil, Trash2, CalendarDays } from 'lucide-react'
 import { useForm } from 'react-hook-form'
-import { patientApi } from '@/api/endpoints'
+import { patientApi, appointmentApi } from '@/api/endpoints'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Input, Select } from '@/components/ui/Input'
-import { Badge } from '@/components/ui/Badge'
+import { Badge, StatusBadge } from '@/components/ui/Badge'
 import toast from 'react-hot-toast'
 import type { Patient } from '@/types'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
+
+/** Past and upcoming appointments for one patient, newest first. */
+function PatientAppointments({ patientId }: { readonly patientId: number }) {
+  const [page, setPage] = useState(0)
+  const { data, isLoading } = useQuery({
+    queryKey: ['appointments', 'patient', patientId, page],
+    queryFn: async () => (await appointmentApi.byPatient(patientId, page)).data.data,
+  })
+  const now = new Date()
+  return (
+    <Table
+      data={(data?.content ?? []) as unknown as Record<string, unknown>[]}
+      loading={isLoading} keyField={'id' as never}
+      totalPages={data?.totalPages} currentPage={page} onPageChange={setPage}
+      emptyMessage="No appointments yet."
+      columns={[
+        { key: 'appointmentDate', header: 'When', render: (r) => {
+          const d = parseISO(String(r.appointmentDate))
+          return <span className={d > now ? 'font-semibold text-ink' : 'text-ink-muted'}>{format(d, 'MMM d, yyyy · h:mm a')}</span>
+        } },
+        { key: 'doctor', header: 'Doctor', render: (r) => (r.doctor as { name?: string } | null)?.name ?? '—' },
+        { key: 'reason', header: 'Reason', render: (r) => String(r.status === 'CANCELLED' ? `Cancelled: ${r.cancelReason ?? ''}` : r.reason ?? '—') },
+        { key: 'status', header: 'Status', render: (r) => <StatusBadge status={String(r.status)} /> },
+      ]}
+    />
+  )
+}
 
 export default function Patients() {
   // Search lives in the URL (?q=) so the header search can deep-link here
@@ -22,6 +49,7 @@ export default function Patients() {
   useEffect(() => setPage(0), [search])
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Patient | null>(null)
+  const [historyFor, setHistoryFor] = useState<Patient | null>(null)
   const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -61,6 +89,8 @@ export default function Patients() {
     setValue('dob', p.dob)
     setValue('address', p.address)
     setValue('bloodGroup', p.bloodGroup)
+    setValue('allergies', p.allergies)
+    setValue('conditions', p.conditions)
     setShowModal(true)
   }
 
@@ -170,6 +200,10 @@ export default function Patients() {
                 const p = row as unknown as Patient
                 return (
                   <div className="flex items-center gap-2 justify-end">
+                    <button onClick={() => setHistoryFor(p)} aria-label={`Appointment history for ${p.name}`}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-surface-card text-ink-muted hover:text-primary transition">
+                      <CalendarDays size={13} aria-hidden="true" />
+                    </button>
                     <button onClick={() => openEdit(p)} className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-surface-card text-ink-muted hover:text-primary transition">
                       <Pencil size={13} />
                     </button>
@@ -184,6 +218,11 @@ export default function Patients() {
           ]}
         />
       </div>
+
+      <Modal open={!!historyFor} onClose={() => setHistoryFor(null)}
+        title={`Appointments — ${historyFor?.name ?? ''}`} size="xl">
+        {historyFor && <PatientAppointments patientId={historyFor.id} />}
+      </Modal>
 
       {/* Modal */}
       <Modal open={showModal} onClose={() => { setShowModal(false); setEditing(null) }}
@@ -200,6 +239,10 @@ export default function Patients() {
             <Input label="Email" type="email" {...register('email')} placeholder="patient@email.com" />
           </div>
           <Input label="Address" {...register('address')} placeholder="Street, City, Country" />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Allergies" {...register('allergies')} placeholder="e.g. Penicillin, peanuts" />
+            <Input label="Chronic conditions" {...register('conditions')} placeholder="e.g. Type 2 diabetes, asthma" />
+          </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>Cancel</Button>
             <Button type="submit" loading={saveMutation.isPending}>

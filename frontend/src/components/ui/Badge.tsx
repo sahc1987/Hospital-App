@@ -28,7 +28,7 @@ export function Badge({ variant = 'default', children, className }: BadgeProps) 
 
 // Status-specific convenience components
 const statusMap: Record<string, Variant> = {
-  SCHEDULED: 'info',     CONFIRMED: 'success', COMPLETED: 'success',
+  SCHEDULED: 'default',  CONFIRMED: 'info',    CHECKED_IN: 'orange',  IN_CONSULTATION: 'warning',  COMPLETED: 'success',
   CANCELLED: 'danger',   NO_SHOW: 'warning',
   ADMITTED: 'orange',    DISCHARGED: 'success', TRANSFERRED: 'info',
   AVAILABLE: 'success',  OCCUPIED: 'danger',   MAINTENANCE: 'warning',

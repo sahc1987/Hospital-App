@@ -10,6 +10,10 @@ import { Input, Select } from '@/components/ui/Input'
 import toast from 'react-hot-toast'
 import type { Doctor } from '@/types'
 
+const WEEK = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+type DoctorForm = Partial<Doctor> & { days?: string[] }
+const HOURS_DEFAULTS: DoctorForm = { workStart: '09:00', workEnd: '17:00', slotMinutes: 30, consultationFee: 0, days: WEEK.slice(0, 5) }
+
 export default function Doctors() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
@@ -28,22 +32,25 @@ export default function Doctors() {
     queryFn: () => departmentApi.list(0, 200),
   })
 
-  const { register, handleSubmit, reset, setValue } = useForm<Partial<Doctor>>()
+  const { register, handleSubmit, reset, setValue } = useForm<DoctorForm>({ defaultValues: HOURS_DEFAULTS })
 
   const saveMutation = useMutation({
-    mutationFn: (d: Partial<Doctor>) =>
-      editing
-        ? doctorApi.update(editing.id, d, deptId ? Number(deptId) : undefined)
-        : doctorApi.create(d, deptId ? Number(deptId) : undefined),
+    mutationFn: ({ days, ...d }: DoctorForm) => {
+      const body = { ...d, workDays: (days ?? []).join(','), slotMinutes: Number(d.slotMinutes),
+        consultationFee: Number(d.consultationFee ?? 0) }
+      return editing
+        ? doctorApi.update(editing.id, body, deptId ? Number(deptId) : undefined)
+        : doctorApi.create(body, deptId ? Number(deptId) : undefined)
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['doctors'] })
       toast.success(editing ? 'Doctor updated' : 'Doctor added')
       setShowModal(false)
       setEditing(null)
-      reset()
+      reset(HOURS_DEFAULTS)
       setDeptId('')
     },
-    onError: () => toast.error('Failed to save'),
+    // errors: the axios interceptor already toasts the server's message
   })
 
   const deleteMutation = useMutation({
@@ -58,6 +65,11 @@ export default function Doctors() {
     setValue('phone', d.phone)
     setValue('email', d.email)
     setValue('licenseNumber', d.licenseNumber)
+    setValue('workStart', d.workStart?.slice(0, 5))
+    setValue('workEnd', d.workEnd?.slice(0, 5))
+    setValue('slotMinutes', d.slotMinutes)
+    setValue('consultationFee', d.consultationFee)
+    setValue('days', d.workDays?.split(',') ?? [])
     setDeptId(String(d.department?.id ?? ''))
     setShowModal(true)
   }
@@ -73,7 +85,7 @@ export default function Doctors() {
           <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }}
             placeholder="Search doctors..." className="input pl-9" />
         </div>
-        <Button onClick={() => { setEditing(null); reset(); setDeptId(''); setShowModal(true) }} icon={<Plus size={15} />}>
+        <Button onClick={() => { setEditing(null); reset(HOURS_DEFAULTS); setDeptId(''); setShowModal(true) }} icon={<Plus size={15} />}>
           Add Doctor
         </Button>
       </div>
@@ -176,6 +188,24 @@ export default function Doctors() {
               options={departments.map((dep) => ({ value: dep.id, label: dep.name }))}
             />
           </div>
+          <fieldset className="space-y-3 rounded-xl bg-surface-alt p-4">
+            <legend className="px-1 text-sm font-semibold text-ink">Working hours (bookable appointment slots)</legend>
+            <div className="grid grid-cols-3 gap-4">
+              <Input label="Start" type="time" required {...register('workStart')} />
+              <Input label="End" type="time" required {...register('workEnd')} />
+              <Input label="Slot length (min)" type="number" min={5} max={240} step={5} required {...register('slotMinutes')} />
+            </div>
+            <Input label="Consultation fee ($, billed on completion; 0 = no bill)" type="number" min={0} step="0.01"
+              {...register('consultationFee')} />
+            <div className="flex flex-wrap gap-3" role="group" aria-label="Working days">
+              {WEEK.map((day) => (
+                <label key={day} className="flex items-center gap-1.5 text-sm text-ink">
+                  <input type="checkbox" value={day} {...register('days')} className="h-4 w-4 accent-primary" />
+                  {day.charAt(0) + day.slice(1).toLowerCase()}
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>Cancel</Button>
             <Button type="submit" loading={saveMutation.isPending}>

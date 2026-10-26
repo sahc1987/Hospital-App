@@ -45,6 +45,9 @@ services:
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      # Hospital wall-clock time. All appointment times are naive local times in this zone,
+      # so "today", "in the future" and working hours must be evaluated here, not in UTC.
+      TZ: ${TZ:-America/New_York}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-hms_db}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-hms_user}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-hms_password}

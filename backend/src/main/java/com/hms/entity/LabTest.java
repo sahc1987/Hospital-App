@@ -40,6 +40,10 @@ public class LabTest {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    /** Set when ordered from a consultation. Plain id: nothing needs to navigate the relation. */
+    @Column(name = "appointment_id")
+    private Long appointmentId;
+
     @OneToOne(mappedBy = "labTest", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private LabResult result;
 

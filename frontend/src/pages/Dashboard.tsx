@@ -232,7 +232,7 @@ function AppointmentProgress({ appointments }: { readonly appointments: Appointm
   const count = (...s: Appointment['status'][]) => appointments.filter((a) => s.includes(a.status)).length
   const bars = [
     { label: 'Completed',            value: count('COMPLETED'),            fill: HEX.primary },
-    { label: 'Upcoming',             value: count('SCHEDULED', 'CONFIRMED'), fill: HEX.coral },
+    { label: 'Upcoming / waiting',   value: count('SCHEDULED', 'CONFIRMED', 'CHECKED_IN', 'IN_CONSULTATION'), fill: HEX.coral },
     { label: 'Cancelled / no-show',  value: count('CANCELLED', 'NO_SHOW'), fill: HEX.pink },
   ]
 

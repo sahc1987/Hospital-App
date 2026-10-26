@@ -1,5 +1,5 @@
 import { cn } from '@/utils/cn'
-import { forwardRef } from 'react'
+import { forwardRef, useId } from 'react'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -8,10 +8,12 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, icon, className, ...props }, ref) => {
+  ({ label, error, icon, className, id, ...props }, ref) => {
+    const autoId = useId()
+    const inputId = id ?? autoId
     return (
       <div className="flex flex-col gap-1.5">
-        {label && <label className="text-sm font-medium text-ink">{label}</label>}
+        {label && <label htmlFor={inputId} className="text-sm font-medium text-ink">{label}</label>}
         <div className="relative">
           {icon && (
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-subtle">
@@ -19,6 +21,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             </span>
           )}
           <input
+            id={inputId}
             ref={ref}
             className={cn(
               'input',
@@ -42,11 +45,14 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   options: { value: string | number; label: string }[]
 }
 
-export function Select({ label, error, options, className, ...props }: SelectProps) {
+export function Select({ label, error, options, className, id, ...props }: SelectProps) {
+  const autoId = useId()
+  const selectId = id ?? autoId
   return (
     <div className="flex flex-col gap-1.5">
-      {label && <label className="text-sm font-medium text-ink">{label}</label>}
+      {label && <label htmlFor={selectId} className="text-sm font-medium text-ink">{label}</label>}
       <select
+        id={selectId}
         className={cn(
           'input appearance-none cursor-pointer',
           error && 'border-danger',

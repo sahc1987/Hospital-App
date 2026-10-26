@@ -1,6 +1,7 @@
 package com.hms.entity;
 
 import com.hms.entity.enums.AppointmentStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -39,6 +40,30 @@ public class Appointment {
 
     @Column(columnDefinition = "TEXT")
     private String notes;
+
+    /** Frozen at booking (doctor's slot length then), so later config changes don't move overlaps. */
+    @Builder.Default @Column(name = "duration_minutes", nullable = false)
+    private int durationMinutes = 30;
+
+    @Column(name = "cancel_reason", columnDefinition = "TEXT")
+    private String cancelReason;
+
+    // Clinical record: hidden from the general appointment JSON (front desk can read that);
+    // served by GET /api/appointments/{id}/visit to clinical roles only.
+    @JsonIgnore @Column(columnDefinition = "TEXT")
+    private String diagnosis;
+
+    @JsonIgnore @Column(name = "visit_note", columnDefinition = "TEXT")
+    private String visitNote;
+
+    // Timings (not sensitive; lets the desk see waiting vs. in-room and how long)
+    @Column(name = "checked_in_at") private LocalDateTime checkedInAt;
+    @Column(name = "started_at")    private LocalDateTime startedAt;
+    @Column(name = "completed_at")  private LocalDateTime completedAt;
+
+    public LocalDateTime getEndDate() {
+        return appointmentDate.plusMinutes(durationMinutes);
+    }
 
     @CreatedDate @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

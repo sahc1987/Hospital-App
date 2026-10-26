@@ -13,5 +13,7 @@ public record PatientRequest(
         String phone,
         @Email String email,
         String address,
-        String bloodGroup
+        String bloodGroup,
+        String allergies,
+        String conditions
 ) {}

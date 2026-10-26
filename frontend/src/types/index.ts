@@ -1,6 +1,6 @@
 export type UserRole = 'ADMIN' | 'DOCTOR' | 'NURSE' | 'RECEPTIONIST' | 'LAB_TECH' | 'PHARMACIST' | 'HR'
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER'
-export type AppointmentStatus = 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
+export type AppointmentStatus = 'SCHEDULED' | 'CONFIRMED' | 'CHECKED_IN' | 'IN_CONSULTATION' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
 export type AdmissionStatus = 'ADMITTED' | 'DISCHARGED' | 'TRANSFERRED'
 export type RoomType = 'GENERAL' | 'PRIVATE' | 'ICU' | 'EMERGENCY' | 'OT' | 'MATERNITY'
 export type RoomStatus = 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE'
@@ -30,6 +30,11 @@ export interface Doctor {
   email?: string
   licenseNumber?: string
   department?: Department
+  workStart: string     // "09:00:00" (hospital local time)
+  workEnd: string
+  slotMinutes: number
+  workDays: string      // "MON,TUE,WED,THU,FRI"
+  consultationFee: number  // auto-billed on completion; 0 = no bill
   createdAt: string
 }
 
@@ -42,6 +47,8 @@ export interface Patient {
   email?: string
   address?: string
   bloodGroup?: string
+  allergies?: string
+  conditions?: string
   createdAt: string
 }
 
@@ -49,11 +56,51 @@ export interface Appointment {
   id: number
   patient: Patient
   doctor: Doctor
-  appointmentDate: string
+  appointmentDate: string   // naive hospital-local ISO, e.g. "2026-10-28T09:30:00"
+  endDate: string
+  durationMinutes: number
   status: AppointmentStatus
   reason?: string
   notes?: string
+  cancelReason?: string
+  checkedInAt?: string
+  startedAt?: string
+  completedAt?: string
   createdAt: string
+}
+
+export interface RxItem {
+  medication: string
+  dosage?: string
+  frequency?: string
+  duration?: string
+  instructions?: string
+}
+
+/** Clinical record of a visit (GET /appointments/{id}/visit) — clinical roles only. */
+export interface Visit {
+  diagnosis: string | null
+  visitNote: string | null
+  prescription: RxItem[]
+  addenda: AppointmentHistoryEntry[]
+  labTests: { id: number; test_name: string; status: LabTestStatus }[]
+}
+
+export interface PastVisit {
+  id: number
+  appointment_date: string
+  diagnosis: string | null
+  visit_note: string | null
+  doctor: string
+}
+
+export interface AppointmentHistoryEntry {
+  action: 'CREATED' | 'STATUS' | 'RESCHEDULED' | 'EDITED' | 'ADDENDUM'
+  from_status: AppointmentStatus | null
+  to_status: AppointmentStatus | null
+  note: string | null
+  changed_by: string
+  changed_at: string
 }
 
 export interface Room {
@@ -84,6 +131,8 @@ export interface LabTest {
   orderedDate: string
   status: LabTestStatus
   notes?: string
+  appointmentId?: number
+  result?: { resultData?: string; remarks?: string; resultDate?: string } | null
 }
 
 export interface Bill {

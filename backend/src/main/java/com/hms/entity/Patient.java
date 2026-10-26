@@ -42,6 +42,13 @@ public class Patient {
     @Column(name = "blood_group", length = 5)
     private String bloodGroup;
 
+    /** Shown as a warning banner in consultations (and useful to pharmacy), so not hidden like visit notes. */
+    @Column(columnDefinition = "TEXT")
+    private String allergies;
+
+    @Column(columnDefinition = "TEXT")
+    private String conditions;
+
     @CreatedDate @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

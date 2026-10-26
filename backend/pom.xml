@@ -21,6 +21,8 @@
     <jjwt.version>0.12.6</jjwt.version>
     <mapstruct.version>1.6.3</mapstruct.version>
     <lombok.version>1.18.42</lombok.version>
+    <!-- Lets Mockito's Byte Buddy mock classes on JDK 25+ (harmless on 21) -->
+    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
   </properties>
 
   <dependencies>

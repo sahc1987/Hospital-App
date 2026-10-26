@@ -2,8 +2,22 @@ import client from './client'
 import type {
   ApiResponse, PageResponse,
   Patient, Doctor, Department, Appointment, Room, Admission,
-  LabTest, Bill, PharmacyItem, Employee, Payroll, DashboardStats, DashboardTrends, AuthUser, SystemUser
+  LabTest, Bill, PharmacyItem, Employee, Payroll, DashboardStats, DashboardTrends, AuthUser, SystemUser,
+  AppointmentStatus, AppointmentHistoryEntry, Visit, PastVisit, RxItem,
 } from '@/types'
+
+export interface AppointmentFilters {
+  page?: number
+  size?: number
+  sort?: string
+  status?: AppointmentStatus[]
+  doctorId?: number
+  patientId?: number
+  from?: string   // yyyy-MM-dd
+  to?: string
+  q?: string
+  mine?: boolean
+}
 import type { UserRole } from '@/types'
 
 // Auth
@@ -64,19 +78,36 @@ export const departmentApi = {
 
 // Appointments
 export const appointmentApi = {
-  list: (page = 0, size = 20) =>
-    client.get<ApiResponse<PageResponse<Appointment>>>('/appointments', { params: { page, size } }),
+  // status as comma list: Spring binds "A,B" to List<Enum>; axios would send status[]=…
+  list: (f: AppointmentFilters = {}) =>
+    client.get<ApiResponse<PageResponse<Appointment>>>('/appointments', {
+      params: { ...f, status: f.status?.length ? f.status.join(',') : undefined },
+    }),
   today: () => client.get<ApiResponse<Appointment[]>>('/appointments/today'),
   get: (id: number) => client.get<ApiResponse<Appointment>>(`/appointments/${id}`),
-  byPatient: (patientId: number) =>
-    client.get<ApiResponse<PageResponse<Appointment>>>(`/appointments/patient/${patientId}`),
+  history: (id: number) => client.get<ApiResponse<AppointmentHistoryEntry[]>>(`/appointments/${id}/history`),
+  slots: (doctorId: number, date: string) =>
+    client.get<ApiResponse<string[]>>('/appointments/slots', { params: { doctorId, date } }),
+  byPatient: (patientId: number, page = 0) =>
+    client.get<ApiResponse<PageResponse<Appointment>>>(`/appointments/patient/${patientId}`, { params: { page } }),
   create: (patientId: number, doctorId: number, date: string, reason?: string) =>
     client.post<ApiResponse<Appointment>>('/appointments', {
       patientId, doctorId, appointmentDate: date, reason,
     }),
-  updateStatus: (id: number, status: string, notes?: string) =>
-    client.patch(`/appointments/${id}/status`, null, { params: { status, notes } }),
-  delete: (id: number) => client.delete(`/appointments/${id}`),
+  /** Reschedule (appointmentDate) and/or edit reason & notes. */
+  update: (id: number, data: { appointmentDate?: string; reason?: string; notes?: string }) =>
+    client.patch<ApiResponse<Appointment>>(`/appointments/${id}`, data),
+  // Consultation (clinical roles; writes by the treating doctor)
+  visit: (id: number) => client.get<ApiResponse<Visit>>(`/appointments/${id}/visit`),
+  saveVisit: (id: number, data: { diagnosis: string; visitNote: string }) =>
+    client.put<ApiResponse<void>>(`/appointments/${id}/visit`, data),
+  savePrescription: (id: number, items: RxItem[]) =>
+    client.put<ApiResponse<RxItem[]>>(`/appointments/${id}/prescription`, items),
+  addendum: (id: number, note: string) => client.post<ApiResponse<void>>(`/appointments/${id}/addendum`, { note }),
+  patientVisits: (patientId: number) =>
+    client.get<ApiResponse<PastVisit[]>>(`/appointments/patient/${patientId}/visits`),
+  changeStatus: (id: number, status: AppointmentStatus, note?: string) =>
+    client.patch<ApiResponse<Appointment>>(`/appointments/${id}/status`, { status, note }),
 }
 
 // Rooms
@@ -108,6 +139,8 @@ export const labApi = {
   get: (id: number) => client.get<ApiResponse<LabTest>>(`/lab/${id}`),
   create: (data: Partial<LabTest & { patientId: number; doctorId?: number }>) =>
     client.post<ApiResponse<LabTest>>('/lab', data),
+  byPatient: (patientId: number) =>
+    client.get<ApiResponse<PageResponse<LabTest>>>(`/lab/patient/${patientId}`, { params: { size: 50, sort: 'orderedDate,desc' } }),
   updateStatus: (id: number, status: string) =>
     client.patch(`/lab/${id}/status`, null, { params: { status } }),
   submitResult: (testId: number, data: { resultData: string; remarks?: string }) =>
