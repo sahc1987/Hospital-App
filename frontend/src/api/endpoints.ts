@@ -10,8 +10,11 @@ import type { UserRole } from '@/types'
 export const authApi = {
   login: (username: string, password: string) =>
     client.post<ApiResponse<AuthUser>>('/auth/login', { username, password }),
-  refresh: (token: string) =>
-    client.post<ApiResponse<AuthUser>>(`/auth/refresh?token=${token}`),
+  // Tokens ride in HttpOnly cookies; nothing to pass
+  refresh: () =>
+    client.post<ApiResponse<AuthUser>>('/auth/refresh'),
+  logout: () =>
+    client.post<ApiResponse<void>>('/auth/logout'),
   me: () =>
     client.get<ApiResponse<SystemUser>>('/auth/me'),
   updateProfile: (data: { fullName: string; email: string }) =>

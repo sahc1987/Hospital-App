@@ -8,12 +8,6 @@ const client = axios.create({
   timeout: 30_000,
 })
 
-client.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
-})
-
 client.interceptors.response.use(
   (res) => res,
   (err) => {
@@ -22,7 +16,8 @@ client.interceptors.response.use(
     const serverMsg: string | undefined =
       err.response?.data?.message || err.response?.data?.error
 
-    if (status === 401) {
+    // A wrong password is also a 401 — let the login form show it instead of reloading
+    if (status === 401 && !err.config?.url?.includes('/auth/login')) {
       useAuthStore.getState().logout()
       globalThis.location.href = '/login'
     } else if (status === 403) {

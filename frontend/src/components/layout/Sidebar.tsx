@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { useAuthStore } from '@/store/authStore'
+import { authApi } from '@/api/endpoints'
 import { canAccess } from '@/utils/permissions'
 import type { UserRole } from '@/types'
 import toast from 'react-hot-toast'
@@ -59,6 +60,8 @@ export default function Sidebar() {
   const role = user?.role as UserRole | undefined
 
   function handleLogout() {
+    // Fire-and-forget: revoke tokens server-side, but never block leaving on it
+    authApi.logout().catch(() => {})
     logout()
     toast.success('Logged out')
     navigate('/login')

@@ -13,9 +13,6 @@ export interface AuthUser {
   email: string
   fullName: string
   role: UserRole
-  accessToken: string
-  refreshToken: string
-  tokenType: string
 }
 
 export interface Department {

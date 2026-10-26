@@ -1,5 +1,6 @@
 package com.hms.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -17,6 +18,7 @@ public class LabResult {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonIgnore // back-reference: LabTest.result -> labTest -> result ... recursed until Jackson's depth limit
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "lab_test_id", nullable = false)
     private LabTest labTest;

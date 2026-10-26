@@ -85,11 +85,15 @@ public class BillingService {
             throw new BadRequestException("Cannot record payment for a " + bill.getStatus() + " bill");
         }
 
-        bill.setPaidAmount(bill.getPaidAmount().add(amount));
-
         BigDecimal outstanding = bill.getTotalAmount()
                 .subtract(bill.getDiscount())
                 .subtract(bill.getPaidAmount());
+        if (amount.compareTo(outstanding) > 0) {
+            throw new BadRequestException("Payment exceeds outstanding balance of " + outstanding);
+        }
+
+        bill.setPaidAmount(bill.getPaidAmount().add(amount));
+        outstanding = outstanding.subtract(amount);
 
         bill.setStatus(outstanding.compareTo(BigDecimal.ZERO) <= 0 ? BillStatus.PAID : BillStatus.PARTIAL);
 

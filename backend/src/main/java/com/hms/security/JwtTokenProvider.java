@@ -29,18 +29,28 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
+    private static final String TYPE = "typ";
+    public static final String ACCESS = "access";
+    public static final String REFRESH = "refresh";
+
     public String generateToken(Authentication auth) {
-        return buildToken(auth.getName(), jwtExpirationMs);
+        return buildToken(auth.getName(), jwtExpirationMs, ACCESS);
     }
 
     public String generateRefreshToken(String username) {
-        return buildToken(username, refreshExpirationMs);
+        return buildToken(username, refreshExpirationMs, REFRESH);
     }
 
-    private String buildToken(String subject, long expiryMs) {
+    // Stops the 7-day refresh token from being used as an access token (and vice versa)
+    public boolean isType(String token, String type) {
+        return type.equals(claims(token).get(TYPE, String.class));
+    }
+
+    private String buildToken(String subject, long expiryMs, String type) {
         return Jwts.builder()
                 .id(UUID.randomUUID().toString())
                 .subject(subject)
+                .claim(TYPE, type)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiryMs))
                 .signWith(key())

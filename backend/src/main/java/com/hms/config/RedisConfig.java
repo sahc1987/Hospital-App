@@ -70,7 +70,9 @@ public class RedisConfig {
                 .allowIfSubType("java.math")
                 .allowIfSubType("java.time")
                 .build();
-        mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
+        // EVERYTHING, not NON_FINAL: records (DashboardStats) are final, so NON_FINAL wrote no @class
+        // and every cache hit failed to deserialize -> 500
+        mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.EVERYTHING, JsonTypeInfo.As.PROPERTY);
         return mapper;
     }
 }

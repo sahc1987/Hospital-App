@@ -32,7 +32,14 @@ public class PayrollService {
     }
 
     @Transactional
-    public Payroll generate(Long employeeId, String month, BigDecimal basicSalary) {
+    public Payroll generate(Long employeeId, String rawMonth, BigDecimal basicSalary) {
+        if (basicSalary.signum() <= 0) throw new BadRequestException("Basic salary must be positive");
+        String month;
+        try {
+            month = java.time.YearMonth.parse(rawMonth).toString(); // canonical YYYY-MM, fits VARCHAR(7)
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new BadRequestException("Month must be in YYYY-MM format");
+        }
         var employee = employeeRepo.findById(employeeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", employeeId));
 

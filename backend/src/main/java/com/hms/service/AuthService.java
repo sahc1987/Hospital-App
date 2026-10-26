@@ -10,12 +10,16 @@ import com.hms.exception.BadRequestException;
 import com.hms.repository.UserRepository;
 import com.hms.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
@@ -26,10 +30,28 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenBlacklistService blacklistService;
+    private final RedisTemplate<String, Object> redisTemplate;
+
+    // ponytail: per-username lockout — lets an attacker lock a known account for 15 min; add per-IP limits if that bites
+    private static final int MAX_FAILED_LOGINS = 5;
+    private static final Duration LOCKOUT = Duration.ofMinutes(15);
 
     public AuthResponse login(LoginRequest req) {
-        Authentication auth = authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(req.username(), req.password()));
+        String failKey = "login:fail:" + req.username().toLowerCase();
+        Object fails = redisTemplate.opsForValue().get(failKey);
+        if (fails != null && Long.parseLong(fails.toString()) >= MAX_FAILED_LOGINS) {
+            throw new BadRequestException("Too many failed attempts. Try again in 15 minutes.");
+        }
+        Authentication auth;
+        try {
+            auth = authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(req.username(), req.password()));
+        } catch (BadCredentialsException e) {
+            redisTemplate.opsForValue().increment(failKey);
+            redisTemplate.expire(failKey, LOCKOUT);
+            throw e;
+        }
+        redisTemplate.delete(failKey);
         User user = (User) auth.getPrincipal();
         String access = tokenProvider.generateToken(auth);
         String refresh = tokenProvider.generateRefreshToken(user.getUsername());
@@ -60,8 +82,16 @@ public class AuthService {
         userRepository.save(user);
     }
 
+    public void logout(String... tokens) {
+        for (String t : tokens) {
+            if (t != null && tokenProvider.validateToken(t)) {
+                blacklistService.blacklist(tokenProvider.extractJti(t), tokenProvider.getRemainingTtlMs(t));
+            }
+        }
+    }
+
     public AuthResponse refresh(String refreshToken) {
-        if (!tokenProvider.validateToken(refreshToken)) {
+        if (!tokenProvider.validateToken(refreshToken) || !tokenProvider.isType(refreshToken, JwtTokenProvider.REFRESH)) {
             throw new BadRequestException("Invalid or expired refresh token");
         }
         String oldJti = tokenProvider.extractJti(refreshToken);
@@ -71,6 +101,7 @@ public class AuthService {
         blacklistService.blacklist(oldJti, tokenProvider.getRemainingTtlMs(refreshToken));
         String username = tokenProvider.getUsernameFromToken(refreshToken);
         User user = userRepository.findByUsername(username)
+                .filter(User::isActive)
                 .orElseThrow(() -> new BadRequestException("User not found"));
 
         Authentication auth = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());

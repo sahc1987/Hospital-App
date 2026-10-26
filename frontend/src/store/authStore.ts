@@ -2,10 +2,9 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { AuthUser } from '@/types'
 
+// Tokens are HttpOnly cookies set by the backend; only the user profile is kept here.
 interface AuthState {
   user: AuthUser | null
-  token: string | null
-  refreshToken: string | null
   isAuthenticated: boolean
   login: (user: AuthUser) => void
   logout: () => void
@@ -16,14 +15,13 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      token: null,
-      refreshToken: null,
       isAuthenticated: false,
-      login: (user) => set({ user, token: user.accessToken, refreshToken: user.refreshToken, isAuthenticated: true }),
-      logout: () => set({ user: null, token: null, refreshToken: null, isAuthenticated: false }),
+      login: (user) => set({ user, isAuthenticated: true }),
+      logout: () => set({ user: null, isAuthenticated: false }),
       updateUser: (patch) =>
         set((s) => ({ user: s.user ? { ...s.user, ...patch } : s.user })),
     }),
-    { name: 'hms-auth' },
+    // version bump discards old persisted state, which still held tokens
+    { name: 'hms-auth', version: 1 },
   ),
 )

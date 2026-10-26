@@ -4,6 +4,9 @@ import com.hms.dto.ApiResponse;
 import com.hms.dto.user.LinkRequest;
 import com.hms.dto.user.UserRequest;
 import com.hms.dto.user.UserResponse;
+import com.hms.entity.User;
+import com.hms.entity.enums.UserRole;
+import com.hms.exception.BadRequestException;
 import com.hms.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -42,17 +46,21 @@ public class UserController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> update(
-            @PathVariable Long id, @Valid @RequestBody UserRequest req) {
+            @AuthenticationPrincipal User me, @PathVariable Long id, @Valid @RequestBody UserRequest req) {
+        if (me.getId().equals(id) && req.role() != UserRole.ADMIN) notSelf("change your own role");
         return ResponseEntity.ok(ApiResponse.ok("User updated", userService.update(id, req)));
     }
 
     @PatchMapping("/{id}/toggle-active")
-    public ResponseEntity<ApiResponse<UserResponse>> toggleActive(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<UserResponse>> toggleActive(
+            @AuthenticationPrincipal User me, @PathVariable Long id) {
+        if (me.getId().equals(id)) notSelf("deactivate your own account");
         return ResponseEntity.ok(ApiResponse.ok(userService.toggleActive(id)));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@AuthenticationPrincipal User me, @PathVariable Long id) {
+        if (me.getId().equals(id)) notSelf("delete your own account");
         userService.delete(id);
         return ResponseEntity.noContent().build();
     }
@@ -66,5 +74,10 @@ public class UserController {
     @DeleteMapping("/{id}/link")
     public ResponseEntity<ApiResponse<UserResponse>> unlinkStaff(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok("Staff profile unlinked", userService.unlinkStaff(id)));
+    }
+
+    // Stops the last admin from locking everyone out
+    private static void notSelf(String action) {
+        throw new BadRequestException("You cannot " + action);
     }
 }

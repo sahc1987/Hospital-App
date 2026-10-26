@@ -1,3 +1,5 @@
 package com.hms.dto.lab;
 
-public record LabResultRequest(String resultData, String remarks) {}
+import jakarta.validation.constraints.NotBlank;
+
+public record LabResultRequest(@NotBlank String resultData, String remarks) {}

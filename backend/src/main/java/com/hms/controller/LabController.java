@@ -52,7 +52,7 @@ public class LabController {
 
     @PostMapping("/{id}/result")
     public ResponseEntity<ApiResponse<LabTest>> submitResult(
-            @PathVariable Long id, @RequestBody LabResultRequest request) {
+            @PathVariable Long id, @Valid @RequestBody LabResultRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("Result submitted", service.submitResult(id, request)));
     }
