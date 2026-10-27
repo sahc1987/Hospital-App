@@ -13,7 +13,6 @@ import com.hms.exception.ResourceNotFoundException;
 import com.hms.repository.AppointmentRepository;
 import com.hms.repository.DoctorRepository;
 import com.hms.repository.PatientRepository;
-import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -47,6 +46,7 @@ public class AppointmentService {
     private static final Set<UserRole> FRONT_DESK = Set.of(UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.NURSE);
     /** Roles that may read clinical records (visit notes, diagnoses, prescriptions). */
     private static final Set<UserRole> CLINICAL = Set.of(UserRole.ADMIN, UserRole.DOCTOR, UserRole.NURSE);
+    private static final String ADDENDUM = "ADDENDUM";
 
     private final AppointmentRepository repo;
     private final PatientRepository patientRepo;
@@ -70,24 +70,17 @@ public class AppointmentService {
     public Page<Appointment> search(User actor, AppointmentRequest.Filter f, Pageable pageable) {
         Long effectiveDoctor = f.onlyMine() ? ownDoctorId(actor) : null;
         Long doctorFilter = effectiveDoctor != null ? effectiveDoctor : f.doctorId();
-        List<AppointmentStatus> statuses = f.status();
-        Long patientId = f.patientId();
-        LocalDate from = f.from();
-        LocalDate to = f.to();
-        String q = f.q();
-        Specification<Appointment> spec = (root, query, cb) -> {
-            List<Predicate> p = new ArrayList<>();
-            if (statuses != null && !statuses.isEmpty()) p.add(root.get("status").in(statuses));
-            if (doctorFilter != null) p.add(cb.equal(root.get("doctor").get("id"), doctorFilter));
-            if (patientId != null) p.add(cb.equal(root.get("patient").get("id"), patientId));
-            if (from != null) p.add(cb.greaterThanOrEqualTo(root.get("appointmentDate"), from.atStartOfDay()));
-            if (to != null) p.add(cb.lessThan(root.get("appointmentDate"), to.plusDays(1).atStartOfDay()));
-            if (q != null && !q.isBlank()) {
-                p.add(cb.like(cb.lower(root.get("patient").get("name")), "%" + q.toLowerCase().trim() + "%"));
-            }
-            return cb.and(p.toArray(Predicate[]::new));
-        };
-        return repo.findAll(spec, pageable);
+        List<Specification<Appointment>> s = new ArrayList<>();
+        if (f.status() != null && !f.status().isEmpty()) s.add((r, q, cb) -> r.get("status").in(f.status()));
+        if (doctorFilter != null) s.add((r, q, cb) -> cb.equal(r.get("doctor").get("id"), doctorFilter));
+        if (f.patientId() != null) s.add((r, q, cb) -> cb.equal(r.get("patient").get("id"), f.patientId()));
+        if (f.from() != null) s.add((r, q, cb) -> cb.greaterThanOrEqualTo(r.get("appointmentDate"), f.from().atStartOfDay()));
+        if (f.to() != null) s.add((r, q, cb) -> cb.lessThan(r.get("appointmentDate"), f.to().plusDays(1).atStartOfDay()));
+        if (f.q() != null && !f.q().isBlank()) {
+            String like = "%" + f.q().toLowerCase().trim() + "%";
+            s.add((r, q, cb) -> cb.like(cb.lower(r.get("patient").get("name")), like));
+        }
+        return repo.findAll(Specification.allOf(s), pageable);
     }
 
     @Transactional(readOnly = true)
@@ -129,7 +122,7 @@ public class AppointmentService {
                 + "FROM appointment_history WHERE appointment_id = ? ORDER BY changed_at, id", id);
         // Addenda are clinical record (corrections to the visit note): clinical roles only
         if (actor == null || !CLINICAL.contains(actor.getRole())) {
-            rows = new ArrayList<>(rows.stream().filter(r -> !"ADDENDUM".equals(r.get("action"))).toList());
+            rows = new ArrayList<>(rows.stream().filter(r -> !ADDENDUM.equals(r.get("action"))).toList());
         }
         // java.sql.Timestamp would serialize as UTC+offset; every other API date is naive hospital-local
         rows.forEach(r -> r.computeIfPresent("changed_at", (k, v) -> ((java.sql.Timestamp) v).toLocalDateTime()));
@@ -251,7 +244,7 @@ public class AppointmentService {
         v.put("diagnosis", a.getDiagnosis());
         v.put("visitNote", a.getVisitNote());
         v.put("prescription", prescription(id));
-        v.put("addenda", history(actor, id).stream().filter(h -> "ADDENDUM".equals(h.get("action"))).toList());
+        v.put("addenda", history(actor, id).stream().filter(h -> ADDENDUM.equals(h.get("action"))).toList());
         v.put("labTests", jdbc.queryForList("SELECT id, test_name, status FROM lab_tests WHERE appointment_id = ? ORDER BY id", id));
         return v;
     }
@@ -290,7 +283,7 @@ public class AppointmentService {
         Appointment a = load(id);
         requireTreatingDoctor(actor, a);
         if (a.getStatus() != COMPLETED) throw new BadRequestException("Addenda are for completed visits; edit the note instead");
-        log(id, "ADDENDUM", null, null, req.note(), actor);
+        log(id, ADDENDUM, null, null, req.note(), actor);
     }
 
     /** Completed visits of a patient with their documentation, newest first (clinical roles). */

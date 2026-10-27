@@ -33,7 +33,7 @@ public class DashboardService {
     private final EmployeeRepository employeeRepo;
     private final JdbcTemplate jdbc;
 
-    private static final int TREND_DAYS = 7;
+    private static final long TREND_DAYS = 7;
 
     // ponytail: uncached — 3 small GROUP BY queries; cache it (with mutable lists, Redis Jackson can't
     // rebuild List.of/toList) if the dashboard poll ever shows up in DB load
@@ -52,7 +52,7 @@ public class DashboardService {
         Map<LocalDate, Long> counts = new HashMap<>();
         jdbc.query("SELECT CAST(" + column + " AS DATE) d, COUNT(*) n FROM " + table
                         + " WHERE " + column + " >= ? GROUP BY d",
-                rs -> { counts.put(rs.getDate("d").toLocalDate(), rs.getLong("n")); },
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> counts.put(rs.getDate("d").toLocalDate(), rs.getLong("n")),
                 days.get(0).atStartOfDay());
         return days.stream().map(d -> counts.getOrDefault(d, 0L)).toList();
     }

@@ -233,7 +233,7 @@ public class AdmissionService {
         List<Map<String, Object>> o = jdbc.queryForList(
                 "SELECT o.stopped_at, a.status FROM medication_orders o JOIN admissions a ON a.id = o.admission_id WHERE o.id = ?", orderId);
         if (o.isEmpty()) throw new ResourceNotFoundException("Medication order", orderId);
-        if (o.get(0).get("stopped_at") != null || !"ADMITTED".equals(o.get(0).get("status"))) {
+        if (o.get(0).get("stopped_at") != null || !ADMITTED.equals(o.get(0).get("status"))) {
             throw new BadRequestException("This order is no longer active");
         }
         if (!"GIVEN".equals(req.status()) && (req.note() == null || req.note().isBlank())) {
