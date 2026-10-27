@@ -64,6 +64,15 @@ public class Doctor {
     @Builder.Default @Column(name = "consultation_fee", nullable = false, precision = 10, scale = 2)
     private BigDecimal consultationFee = BigDecimal.ZERO;
 
+    /**
+     * False for doctor records with no user account. Their patients are handled by any doctor ("covering doctor"),
+     * otherwise only an admin could start/complete their visits or discharge their inpatients.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("hasLogin")
+    public boolean hasLogin() {
+        return user != null; // lazy proxy is non-null when user_id is set; not initialized by this check
+    }
+
     public boolean worksOn(DayOfWeek day) {
         return workDays.contains(day.name().substring(0, 3));
     }

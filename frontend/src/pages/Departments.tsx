@@ -121,8 +121,8 @@ export default function Departments() {
         <form onSubmit={handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
           <Input label="Department Name" {...register('name')} placeholder="Cardiology" required />
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-ink">Description</label>
-            <textarea {...register('description')} rows={3}
+            <label htmlFor="dept-description" className="text-sm font-medium text-ink">Description</label>
+            <textarea id="dept-description" {...register('description')} rows={3}
               placeholder="Brief description..." className="input resize-none" />
           </div>
           <div className="flex justify-end gap-3 pt-2">

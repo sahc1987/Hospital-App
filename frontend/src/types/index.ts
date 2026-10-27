@@ -35,6 +35,7 @@ export interface Doctor {
   slotMinutes: number
   workDays: string      // "MON,TUE,WED,THU,FRI"
   consultationFee: number  // auto-billed on completion; 0 = no bill
+  hasLogin: boolean        // false = no user account; any doctor may cover for them
   createdAt: string
 }
 

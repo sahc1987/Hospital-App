@@ -18,7 +18,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     @EntityGraph(attributePaths = {"department"})
     Page<Employee> findByNameContainingIgnoreCase(String name, Pageable pageable);
-    long countByDepartmentId(Long departmentId);
     Optional<Employee> findByUser_Id(Long userId);
     List<Employee> findByUser_IdIn(Collection<Long> userIds);
 }

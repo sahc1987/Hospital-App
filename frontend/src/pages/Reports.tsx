@@ -78,8 +78,8 @@ export default function Reports() {
             <PieChart>
               <Pie data={billStatusData} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
                 paddingAngle={3} dataKey="value">
-                {billStatusData.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                {billStatusData.map((d, i) => (
+                  <Cell key={d.name} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />

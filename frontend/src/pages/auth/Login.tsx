@@ -84,8 +84,9 @@ export default function Login() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-ink">Username</label>
+              <label htmlFor="login-username" className="text-sm font-medium text-ink">Username</label>
               <input
+                id="login-username"
                 {...register('username')}
                 placeholder="admin"
                 autoComplete="username"
@@ -95,9 +96,10 @@ export default function Login() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-ink">Password</label>
+              <label htmlFor="login-password" className="text-sm font-medium text-ink">Password</label>
               <div className="relative">
                 <input
+                  id="login-password"
                   {...register('password')}
                   type={showPw ? 'text' : 'password'}
                   placeholder="••••••••"

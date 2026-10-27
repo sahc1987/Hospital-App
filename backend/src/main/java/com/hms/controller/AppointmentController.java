@@ -4,7 +4,6 @@ import com.hms.dto.ApiResponse;
 import com.hms.dto.appointment.AppointmentRequest;
 import com.hms.entity.Appointment;
 import com.hms.entity.User;
-import com.hms.entity.enums.AppointmentStatus;
 import com.hms.service.AppointmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,16 +32,9 @@ public class AppointmentController {
     @GetMapping
     public ResponseEntity<ApiResponse<Page<Appointment>>> list(
             @AuthenticationPrincipal User user,
-            @RequestParam(required = false) List<AppointmentStatus> status,
-            @RequestParam(required = false) Long doctorId,
-            @RequestParam(required = false) Long patientId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(required = false) String q,
-            @RequestParam(defaultValue = "false") boolean mine,
+            @ModelAttribute AppointmentRequest.Filter filter,
             @PageableDefault(size = 20, sort = "appointmentDate") Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(
-                service.search(user, status, doctorId, patientId, from, to, q, mine, pageable)));
+        return ResponseEntity.ok(ApiResponse.ok(service.search(user, filter, pageable)));
     }
 
     @GetMapping("/today")
@@ -63,8 +55,9 @@ public class AppointmentController {
     }
 
     @GetMapping("/{id}/history")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> history(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(service.history(id)));
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> history(
+            @AuthenticationPrincipal User user, @PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(service.history(user, id)));
     }
 
     @GetMapping("/patient/{patientId}")

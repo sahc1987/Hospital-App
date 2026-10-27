@@ -96,10 +96,9 @@ public class AuthService {
             throw new BadRequestException("Invalid or expired refresh token");
         }
         String oldJti = tokenProvider.extractJti(refreshToken);
-        if (blacklistService.isBlacklisted(oldJti)) {
+        if (!blacklistService.claim(oldJti, tokenProvider.getRemainingTtlMs(refreshToken))) {
             throw new BadRequestException("Refresh token has already been used");
         }
-        blacklistService.blacklist(oldJti, tokenProvider.getRemainingTtlMs(refreshToken));
         String username = tokenProvider.getUsernameFromToken(refreshToken);
         User user = userRepository.findByUsername(username)
                 .filter(User::isActive)

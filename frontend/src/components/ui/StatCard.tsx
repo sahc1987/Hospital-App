@@ -11,7 +11,7 @@ interface StatCardProps {
   className?: string
 }
 
-export function StatCard({ title, value, icon, trend, dark, accent, className }: StatCardProps) {
+export function StatCard({ title, value, icon, trend, dark, accent, className }: Readonly<StatCardProps>) {
   const positive = trend !== undefined && trend >= 0
 
   if (dark) {

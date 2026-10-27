@@ -9,12 +9,21 @@ import { StatusBadge } from '@/components/ui/Badge'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/utils/cn'
 import toast from 'react-hot-toast'
-import type { Admission, MedOrder, StayRecord, UserRole } from '@/types'
+import type { Admission, AdmissionEvent, MedOrder, StayRecord, UserRole } from '@/types'
+import { esc, printHtml } from '@/utils/print'
 
 const h3 = 'mb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted'
 const fmt = (iso?: string | null, f = 'MMM d, h:mm a') => (iso ? format(parseISO(iso), f) : '—')
-const MOVERS: UserRole[] = ['ADMIN', 'RECEPTIONIST', 'NURSE', 'DOCTOR']
-const CLINICAL: UserRole[] = ['ADMIN', 'DOCTOR', 'NURSE']
+const MOVERS = new Set<UserRole>(['ADMIN', 'RECEPTIONIST', 'NURSE', 'DOCTOR'])
+const CLINICAL = new Set<UserRole>(['ADMIN', 'DOCTOR', 'NURSE'])
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+/** Timeline label for a movement event. */
+function eventLabel(e: AdmissionEvent): string {
+  if (e.type === 'ADMITTED') return e.to_room ? 'Admitted to ' + e.to_room : 'Admitted'
+  if (e.type === 'TRANSFER') return 'Transferred ' + (e.from_room ?? '—') + ' → ' + e.to_room
+  return 'Discharged'
+}
 const reduceMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 type Tab = 'overview' | 'notes' | 'vitals' | 'meds'
 
@@ -36,9 +45,11 @@ export function StayPanel({ admission, onClose }: { readonly admission: Admissio
   const [tab, setTab] = useState<Tab>('overview')
 
   const active = a.status === 'ADMITTED'
-  const clinical = !!role && CLINICAL.includes(role)
+  const clinical = !!role && CLINICAL.has(role)
   const isDoctor = role === 'ADMIN' || role === 'DOCTOR'
-  const attending = role === 'ADMIN' || (me?.linkedStaff?.type === 'DOCTOR' && me.linkedStaff.id === a.doctor?.id)
+  // Mirrors AdmissionService.requireAttending: attending doctor, or any doctor covering for one without a login
+  const attending = role === 'ADMIN' || (role === 'DOCTOR' && (a.doctor?.hasLogin === false
+    || (me?.linkedStaff?.type === 'DOCTOR' && me.linkedStaff.id === a.doctor?.id)))
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['admissions'] })
     qc.invalidateQueries({ queryKey: ['rooms'] })
@@ -60,7 +71,7 @@ export function StayPanel({ admission, onClose }: { readonly admission: Admissio
         </div>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
           {[['Status', <StatusBadge key="s" status={a.status} />], ['Room', a.room?.roomNumber ?? 'Pending bed'],
-            ['Attending', a.doctor?.name], ['Stay', rec ? `${rec.losDays} night${rec.losDays === 1 ? '' : 's'} · $${rec.accruedCost}` : '…'],
+            ['Attending', a.doctor?.name], ['Stay', rec ? plural(rec.losDays, 'night') + ' · $' + rec.accruedCost : '…'],
           ].map(([k, v]) => (
             <div key={String(k)}><dt className="text-xs text-ink-muted">{k}</dt><dd className="font-medium text-ink">{v}</dd></div>
           ))}
@@ -75,7 +86,8 @@ export function StayPanel({ admission, onClose }: { readonly admission: Admissio
       )}
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-1 border-b border-border" role="group" aria-label="Stay sections">
+      <fieldset className="flex flex-wrap gap-1 border-b border-border">
+        <legend className="sr-only">Stay sections</legend>
         {([['overview', 'Overview'], ...(clinical ? [['notes', 'Progress notes'], ['vitals', 'Vitals'], ['meds', 'Medications']] : [])] as [Tab, string][])
           .map(([t, label]) => (
             <button key={t} onClick={() => setTab(t)} aria-pressed={tab === t}
@@ -84,11 +96,11 @@ export function StayPanel({ admission, onClose }: { readonly admission: Admissio
               {label}
             </button>
           ))}
-      </div>
+      </fieldset>
 
       {!rec ? <p className="text-sm text-ink-muted">Loading…</p> : (
         <>
-          {tab === 'overview' && <Overview a={a} rec={rec} canMove={!!role && MOVERS.includes(role) && active}
+          {tab === 'overview' && <Overview a={a} rec={rec} canMove={!!role && MOVERS.has(role) && active}
             canDischarge={attending && active} clinical={clinical} onChanged={refresh} onClose={onClose} />}
           {tab === 'notes' && <Notes id={a.id} rec={rec} active={active} />}
           {tab === 'vitals' && <Vitals id={a.id} rec={rec} active={active} />}
@@ -116,8 +128,7 @@ function Overview({ a, rec, canMove, canDischarge, clinical, onChanged, onClose 
           {moves.map((e) => (
             <li key={e.id} className="text-sm">
               <p className="font-medium text-ink">
-                {e.type === 'ADMITTED' ? `Admitted${e.to_room ? ` to ${e.to_room}` : ''}`
-                  : e.type === 'TRANSFER' ? `Transferred ${e.from_room ?? '—'} → ${e.to_room}` : 'Discharged'}
+                {eventLabel(e)}
               </p>
               {e.note && <p className="text-ink-muted">{e.note}</p>}
               <p className="text-xs text-ink-muted">{e.author} · {fmt(e.created_at, 'MMM d, yyyy h:mm a')}</p>
@@ -185,7 +196,7 @@ function TransferForm({ a, onDone, onCancel }: { readonly a: Admission; readonly
 }
 
 function DischargeForm({ a, onDone, onCancel }: { readonly a: Admission; readonly onDone: () => void; readonly onCancel: () => void }) {
-  const [finalDiagnosis, setDx] = useState(a.diagnosis ?? '')
+  const [finalDiagnosis, setFinalDiagnosis] = useState(a.diagnosis ?? '')
   const [summary, setSummary] = useState('')
   const [instructions, setInstructions] = useState('')
   const go = useMutation({
@@ -199,7 +210,7 @@ function DischargeForm({ a, onDone, onCancel }: { readonly a: Admission; readonl
     <form className="space-y-3 rounded-xl border border-border p-4" onSubmit={(e) => { e.preventDefault(); go.mutate() }}>
       <div className="flex flex-col gap-1.5">
         <label htmlFor="dc-dx" className="text-sm font-medium text-ink">Final diagnosis</label>
-        <input id="dc-dx" required className="input" value={finalDiagnosis} onChange={(e) => setDx(e.target.value)} />
+        <input id="dc-dx" required className="input" value={finalDiagnosis} onChange={(e) => setFinalDiagnosis(e.target.value)} />
       </div>
       <div className="flex flex-col gap-1.5">
         <label htmlFor="dc-sum" className="text-sm font-medium text-ink">Summary (course &amp; treatment)</label>
@@ -374,10 +385,10 @@ function MedRow({ o, active, canStop, onChange }: {
         <div>
           <p className="font-semibold text-ink">{o.medication} <span className="font-normal text-ink-muted">{[o.dosage, o.route, o.frequency].filter(Boolean).join(' · ')}</span></p>
           <p className="text-xs text-ink-muted">
-            Ordered by {o.ordered_by} {fmt(o.ordered_at)}{o.stopped_at && ` · stopped by ${o.stopped_by} ${fmt(o.stopped_at)}`}
+            Ordered by {o.ordered_by} {fmt(o.ordered_at)}{o.stopped_at && ' · stopped by ' + o.stopped_by + ' ' + fmt(o.stopped_at)}
           </p>
           <p className="text-xs text-ink-muted">
-            {last ? `Last: ${last.status.toLowerCase()} by ${last.given_by} ${fmt(last.given_at)}${last.note ? ` — ${last.note}` : ''}` : 'No doses recorded'}
+            {last ? doseLine(last, 'Last: ') : 'No doses recorded'}
           </p>
         </div>
         {active && (
@@ -395,7 +406,7 @@ function MedRow({ o, active, canStop, onChange }: {
         <details className="mt-2 text-xs text-ink-muted">
           <summary className="cursor-pointer">All {o.administrations.length} doses</summary>
           <ul className="mt-1 space-y-0.5">
-            {o.administrations.map((d, i) => <li key={i}>{fmt(d.given_at)} · {d.status.toLowerCase()} · {d.given_by}{d.note && ` — ${d.note}`}</li>)}
+            {o.administrations.map((d) => <li key={d.given_at + d.given_by}>{doseLine(d)}</li>)}
           </ul>
         </details>
       )}
@@ -403,22 +414,25 @@ function MedRow({ o, active, canStop, onChange }: {
   )
 }
 
-// ponytail: plain print window (same approach as the prescription); every value HTML-escaped
+type Dose = MedOrder['administrations'][number]
+/** "given by nurse_ali Oct 26, 9:49 PM — note" */
+function doseLine(d: Dose, prefix = ''): string {
+  return prefix + d.status.toLowerCase() + ' by ' + d.given_by + ' ' + fmt(d.given_at) + (d.note ? ' — ' + d.note : '')
+}
+
 function printSummary(a: Admission, rec: StayRecord) {
-  const esc = (s?: string | null) => (s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
-  const w = window.open('', '_blank', 'width=800,height=900')
-  if (!w) { toast.error('Allow pop-ups to print'); return }
-  w.document.write(`<!doctype html><title>Discharge summary — ${esc(a.patient.name)}</title>
-    <style>body{font:12pt system-ui,sans-serif;margin:2rem;color:#000}h1{font-size:18pt}p{margin:.4rem 0}.sign{margin-top:3rem}</style>
-    <h1>Discharge summary</h1>
-    <p><b>Patient:</b> ${esc(a.patient.name)}${a.patient.allergies ? ` — <b>Allergies:</b> ${esc(a.patient.allergies)}` : ''}</p>
-    <p><b>Admitted:</b> ${esc(fmt(a.admissionDate, 'MMM d, yyyy'))} · <b>Discharged:</b> ${esc(fmt(a.dischargeDate, 'MMM d, yyyy'))} · ${rec.losDays} night(s)</p>
-    <p><b>Attending:</b> ${esc(a.doctor?.name)}</p>
-    <p><b>Final diagnosis:</b> ${esc(rec.finalDiagnosis)}</p>
-    <p><b>Summary:</b><br>${esc(rec.dischargeSummary).replace(/\n/g, '<br>')}</p>
-    ${rec.dischargeInstructions ? `<p><b>Instructions:</b><br>${esc(rec.dischargeInstructions).replace(/\n/g, '<br>')}</p>` : ''}
-    <p class="sign">Signature: ______________________</p>`)
-  w.document.close()
-  w.focus()
-  w.print()
+  const para = (label: string, value?: string | null) =>
+    '<p><b>' + label + ':</b><br>' + esc(value).replace(/\n/g, '<br>') + '</p>'
+  const allergies = a.patient.allergies ? ' — <b>Allergies:</b> ' + esc(a.patient.allergies) : ''
+  const ok = printHtml('Discharge summary — ' + a.patient.name,
+    '<h1>Discharge summary</h1>'
+    + '<p><b>Patient:</b> ' + esc(a.patient.name) + allergies + '</p>'
+    + '<p><b>Admitted:</b> ' + esc(fmt(a.admissionDate, 'MMM d, yyyy')) + ' · <b>Discharged:</b> '
+    + esc(fmt(a.dischargeDate, 'MMM d, yyyy')) + ' · ' + plural(rec.losDays, 'night') + '</p>'
+    + '<p><b>Attending:</b> ' + esc(a.doctor?.name) + '</p>'
+    + '<p><b>Final diagnosis:</b> ' + esc(rec.finalDiagnosis) + '</p>'
+    + para('Summary', rec.dischargeSummary)
+    + (rec.dischargeInstructions ? para('Instructions', rec.dischargeInstructions) : '')
+    + '<p class="sign">Signature: ______________________</p>')
+  if (!ok) toast.error('Allow pop-ups to print')
 }

@@ -18,7 +18,7 @@ import type { Appointment, AppointmentStatus, Doctor, UserRole } from '@/types'
 
 // ─── Rules (mirror of AppointmentService; the server is authoritative) ───────
 
-const FRONT_DESK: UserRole[] = ['ADMIN', 'RECEPTIONIST', 'NURSE']
+const FRONT_DESK = new Set<UserRole>(['ADMIN', 'RECEPTIONIST', 'NURSE'])
 const NEXT: Record<AppointmentStatus, AppointmentStatus[]> = {
   SCHEDULED:  ['CONFIRMED', 'CHECKED_IN', 'NO_SHOW', 'CANCELLED'],
   CONFIRMED:  ['CHECKED_IN', 'NO_SHOW', 'CANCELLED'],
@@ -31,10 +31,22 @@ const ACTION: Partial<Record<AppointmentStatus, string>> = {
 }
 const ALL_STATUSES: AppointmentStatus[] = ['SCHEDULED', 'CONFIRMED', 'CHECKED_IN', 'IN_CONSULTATION', 'COMPLETED', 'CANCELLED', 'NO_SHOW']
 const ACTIVE: AppointmentStatus[] = ['SCHEDULED', 'CONFIRMED', 'CHECKED_IN', 'IN_CONSULTATION', 'COMPLETED']
-const CLINICAL: UserRole[] = ['ADMIN', 'DOCTOR', 'NURSE']
+const CLINICAL = new Set<UserRole>(['ADMIN', 'DOCTOR', 'NURSE'])
 /** Statuses where opening the appointment shows the consultation (clinical) view. */
-const VISIT_STATUSES: AppointmentStatus[] = ['CHECKED_IN', 'IN_CONSULTATION', 'COMPLETED']
+const VISIT_STATUSES = new Set<AppointmentStatus>(['CHECKED_IN', 'IN_CONSULTATION', 'COMPLETED'])
 const DAY = 'yyyy-MM-dd'
+
+/** Week-grid cell colour for a booking. */
+function cellTone(s: AppointmentStatus): string {
+  if (s === 'COMPLETED') return 'bg-mint-light text-success-ink'
+  if (s === 'CHECKED_IN' || s === 'IN_CONSULTATION') return 'bg-primary text-white'
+  return 'bg-primary-100 text-primary-800'
+}
+const doctorLabel = (d: Doctor) => (d.specialization ? d.name + ' — ' + d.specialization : d.name)
+function bookingTitle(appt?: Appointment, followUp?: boolean): string {
+  if (appt) return 'Reschedule appointment'
+  return followUp ? 'Book follow-up' : 'New appointment'
+}
 const isOpen = (s: AppointmentStatus) => s === 'SCHEDULED' || s === 'CONFIRMED'
 const pretty = (s: string) => s.charAt(0) + s.slice(1).toLowerCase().replace('_', ' ')
 const minutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))
@@ -44,15 +56,17 @@ function useRules() {
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: async () => (await authApi.me()).data.data })
   const ownDoctorId = me?.linkedStaff?.type === 'DOCTOR' ? me.linkedStaff.id : undefined
   const isOwn = (doctorId?: number) => ownDoctorId != null && doctorId === ownDoctorId
-  const frontDesk = !!role && FRONT_DESK.includes(role)
+  // Mirrors AppointmentService.actsFor: own doctor, or any doctor covering for one without a login
+  const covers = (d?: Appointment['doctor']) => isOwn(d?.id) || (role === 'DOCTOR' && d?.hasLogin === false)
+  const frontDesk = !!role && FRONT_DESK.has(role)
   return {
     role, ownDoctorId, isDoctor: role === 'DOCTOR',
     canBook: (doctorId?: number) => frontDesk || (role === 'DOCTOR' && (doctorId == null ? !!ownDoctorId : isOwn(doctorId))),
-    canDocument: (a: Appointment) => role === 'ADMIN' || isOwn(a.doctor?.id),
-    showsVisit: (a: Appointment) => !!role && CLINICAL.includes(role) && VISIT_STATUSES.includes(a.status),
+    canDocument: (a: Appointment) => role === 'ADMIN' || covers(a.doctor),
+    showsVisit: (a: Appointment) => !!role && CLINICAL.has(role) && VISIT_STATUSES.has(a.status),
     actions: (a: Appointment): AppointmentStatus[] => NEXT[a.status].filter((to) => {
       if (to === 'COMPLETED') return false // completed from the consultation panel, which enforces the note
-      const allowed = to === 'IN_CONSULTATION' ? role === 'ADMIN' || isOwn(a.doctor?.id) : frontDesk || isOwn(a.doctor?.id)
+      const allowed = to === 'IN_CONSULTATION' ? role === 'ADMIN' || covers(a.doctor) : frontDesk || covers(a.doctor)
       const start = parseISO(a.appointmentDate)
       if (to === 'CHECKED_IN' && !isToday(start)) return false
       if (to === 'NO_SHOW' && start > new Date()) return false
@@ -124,7 +138,8 @@ export default function Appointments() {
   return (
     <div className="space-y-5 motion-safe:animate-slide-up">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-xl bg-surface p-1 shadow-card" role="group" aria-label="View">
+        <fieldset className="inline-flex rounded-xl bg-surface p-1 shadow-card">
+          <legend className="sr-only">View</legend>
           {([['list', List, 'List'], ['week', CalendarDays, 'Week']] as const).map(([v, Icon, label]) => (
             <button key={v} onClick={() => setView(v)} aria-pressed={view === v}
               className={cn('flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
@@ -133,12 +148,12 @@ export default function Appointments() {
               <Icon size={15} aria-hidden="true" /> {label}
             </button>
           ))}
-        </div>
+        </fieldset>
         <div className="flex items-center gap-3">
           {rules.isDoctor && view === 'list' && (
             <label className="flex items-center gap-2 text-sm text-ink">
               <input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)}
-                className="h-4 w-4 accent-primary" />
+                className="h-4 w-4 accent-primary" />{' '}
               Only my appointments
             </label>
           )}
@@ -156,7 +171,7 @@ export default function Appointments() {
         : <WeekView doctors={doctors} defaultDoctorId={rules.ownDoctorId} canBook={rules.canBook}
             onBook={(doctorId, date, time) => setBooking({ doctorId, date, time })} onOpen={setDetails} />}
 
-      {booking && <BookingModal state={booking} doctors={doctors} lockDoctor={rules.isDoctor && !FRONT_DESK.includes(rules.role!)}
+      {booking && <BookingModal state={booking} doctors={doctors} lockDoctor={rules.isDoctor && !FRONT_DESK.has(rules.role!)}
         onClose={() => setBooking(null)} />}
 
       {admitting && <AdmitModal preset={admitting} onClose={() => setAdmitting(null)} />}
@@ -240,7 +255,8 @@ function ListView({ doctors, mine, actions }: {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 px-6" role="group" aria-label="Filter by status">
+      <fieldset className="flex flex-wrap gap-2 px-6">
+        <legend className="sr-only">Filter by status</legend>
         {ALL_STATUSES.map((s) => (
           <button key={s} onClick={() => toggle(s)} aria-pressed={statuses.includes(s)}
             className={cn('rounded-lg px-3 py-1 text-xs font-medium transition-colors',
@@ -252,7 +268,7 @@ function ListView({ doctors, mine, actions }: {
         {statuses.length > 0 && (
           <button onClick={() => setStatuses([])} className="px-2 text-xs text-ink-muted underline">Clear</button>
         )}
-      </div>
+      </fieldset>
 
       <Table
         data={(data?.content ?? []) as unknown as Record<string, unknown>[]}
@@ -387,9 +403,7 @@ function WeekView({ doctors, defaultDoctorId, canBook, onBook, onOpen }: {
                         <button onClick={() => onOpen(a)}
                           className={cn('w-full truncate rounded-lg px-2 py-1.5 text-left font-medium',
                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-                            a.status === 'COMPLETED' ? 'bg-mint-light text-success-ink'
-                              : a.status === 'CHECKED_IN' || a.status === 'IN_CONSULTATION' ? 'bg-primary text-white'
-                              : 'bg-primary-100 text-primary-800')}>
+                            cellTone(a.status))}>
                           {a.patient?.name}
                           <span className="sr-only">, {format(start, 'EEEE h:mm a')}, {pretty(a.status)}</span>
                         </button>
@@ -457,7 +471,7 @@ function BookingModal({ state, doctors, lockDoctor, onClose }: {
   })
 
   return (
-    <Modal open onClose={onClose} title={appt ? 'Reschedule appointment' : state.patientId ? 'Book follow-up' : 'New appointment'} size="lg">
+    <Modal open onClose={onClose} title={bookingTitle(appt, !!state.patientId)} size="lg">
       <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
         {appt ? (
           <p className="rounded-xl bg-surface-alt p-3 text-sm text-ink">
@@ -470,7 +484,7 @@ function BookingModal({ state, doctors, lockDoctor, onClose }: {
               options={patients.map((p) => ({ value: p.id, label: p.name }))} />
             <Select label="Doctor" required value={doctorId} disabled={lockDoctor}
               onChange={(e) => { setDoctorId(e.target.value); setSlot('') }}
-              options={doctors.map((d) => ({ value: d.id, label: `${d.name}${d.specialization ? ` — ${d.specialization}` : ''}` }))} />
+              options={doctors.map((d) => ({ value: d.id, label: doctorLabel(d) }))} />
           </>
         )}
 
@@ -483,9 +497,9 @@ function BookingModal({ state, doctors, lockDoctor, onClose }: {
         {doctorId && date && (
           <fieldset>
             <legend className="mb-2 text-sm font-medium text-ink">Available times</legend>
-            {isFetching ? <p className="text-sm text-ink-muted">Loading…</p>
-              : !slots?.length ? <p className="text-sm text-ink-muted">No free slots that day (doctor off, fully booked, or past).</p>
-              : (
+            {isFetching && <p className="text-sm text-ink-muted">Loading…</p>}
+            {!isFetching && !slots?.length && <p className="text-sm text-ink-muted">No free slots that day (doctor off, fully booked, or past).</p>}
+            {!isFetching && !!slots?.length && (
                 <div className="flex flex-wrap gap-2">
                   {slots.map((s) => (
                     <button key={s} type="button" onClick={() => setSlot(s)} aria-pressed={slot === s}
@@ -600,10 +614,10 @@ function DetailsPanel({ appt, editable, onSaved }: {
         <h3 id="hist-title" className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">History</h3>
         {history.length === 0 ? <p className="text-sm text-ink-muted">No recorded changes (booked before history tracking).</p> : (
           <ol className="space-y-2 border-l-2 border-primary-100 pl-4">
-            {history.map((h, i) => (
-              <li key={i} className="text-sm">
+            {history.map((h) => (
+              <li key={h.changed_at + h.action + (h.to_status ?? '')} className="text-sm">
                 <p className="text-ink">
-                  {h.action === 'STATUS' ? `${pretty(h.from_status!)} → ${pretty(h.to_status!)}` : pretty(h.action)}
+                  {h.action === 'STATUS' ? pretty(h.from_status!) + ' → ' + pretty(h.to_status!) : pretty(h.action)}
                   {h.note && <span className="text-ink-muted"> — {h.note}</span>}
                 </p>
                 <p className="text-xs text-ink-muted">{h.changed_by} · {format(parseISO(h.changed_at), 'MMM d, yyyy h:mm a')}</p>

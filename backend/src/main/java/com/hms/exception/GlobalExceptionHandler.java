@@ -7,7 +7,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
+@SuppressWarnings("java:S8688") // now() is hospital wall-clock time: the JVM zone *is* the hospital zone (TZ, see CLAUDE.md)
 public class GlobalExceptionHandler {
 
     record ErrorResponse(int status, String error, String message, LocalDateTime timestamp) {}
@@ -82,6 +85,23 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         return build(HttpStatus.BAD_REQUEST, "Invalid value for parameter '" + ex.getName() + "'");
+    }
+
+    /** V10 FKs are ON DELETE RESTRICT: deleting a patient/doctor with history fails here instead of cascading. */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleIntegrity(DataIntegrityViolationException ex) {
+        String m = String.valueOf(ex.getMostSpecificCause().getMessage());
+        if (m.contains("violates foreign key constraint")) {
+            return build(HttpStatus.CONFLICT,
+                    "This record has clinical or billing history and can't be deleted. Deactivate it instead.");
+        }
+        log.warn("Integrity violation: {}", m);
+        return build(HttpStatus.CONFLICT, "This change conflicts with existing data");
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResource(NoResourceFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, "Not found");
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)

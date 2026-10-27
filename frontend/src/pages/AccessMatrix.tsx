@@ -187,32 +187,22 @@ export default function AccessMatrix() {
                   </div>
                 </td>
                 {ROLES.map((role) => {
-                  const isLocked = locked && role.id !== 'ADMIN'
+                  const isLocked = !!locked && role.id !== 'ADMIN'
                   const granted  = matrixHasAccess(draft, route, role.id)
                   return (
                     <td key={role.id} className="px-3 py-3 text-center">
                       <button
                         onClick={() => !isLocked && toggle(route, role.id)}
                         disabled={isLocked}
-                        title={isLocked ? 'Admin-only — locked' : granted ? 'Revoke access' : 'Grant access'}
+                        title={cellTitle(isLocked, granted)}
+                        aria-label={cellTitle(isLocked, granted) + ': ' + role.id + ', ' + label}
+                        aria-pressed={granted}
                         className={cn(
                           'mx-auto flex h-7 w-7 items-center justify-center rounded-lg border transition-all',
-                          isLocked
-                            ? 'border-border bg-surface-alt opacity-30 cursor-not-allowed'
-                            : granted
-                              ? cn('border-current cursor-pointer hover:opacity-80', role.bg, role.color)
-                              : 'border-border bg-surface-alt cursor-pointer hover:border-ink-subtle',
+                          cellTone(isLocked, granted, cn(role.bg, role.color)),
                         )}
                       >
-                        {isLocked ? (
-                          <LockKeyhole size={12} />
-                        ) : granted ? (
-                          <svg viewBox="0 0 12 12" className="h-3 w-3 fill-current">
-                            <path d="M1 6l3.5 3.5L11 2" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        ) : (
-                          <span className="h-1.5 w-1.5 rounded-full bg-border" />
-                        )}
+                        <CellIcon locked={isLocked} granted={granted} />
                       </button>
                     </td>
                   )
@@ -228,5 +218,26 @@ export default function AccessMatrix() {
         Locked rows are admin-only and cannot be toggled. Changes take effect immediately for all active sessions after saving.
       </p>
     </div>
+  )
+}
+
+function cellTitle(locked: boolean, granted: boolean): string {
+  if (locked) return 'Admin-only — locked'
+  return granted ? 'Revoke access' : 'Grant access'
+}
+
+function cellTone(locked: boolean, granted: boolean, roleTone: string): string {
+  if (locked) return 'border-border bg-surface-alt opacity-30 cursor-not-allowed'
+  return granted ? cn('border-current cursor-pointer hover:opacity-80', roleTone) : 'border-border bg-surface-alt cursor-pointer hover:border-ink-subtle'
+}
+
+function CellIcon({ locked, granted }: Readonly<{ locked: boolean; granted: boolean }>) {
+  if (locked) return <LockKeyhole size={12} aria-hidden="true" />
+  if (!granted) return <span className="h-1.5 w-1.5 rounded-full bg-border" aria-hidden="true" />
+  return (
+    <svg viewBox="0 0 12 12" className="h-3 w-3 fill-current" aria-hidden="true" focusable="false">
+      <title>Granted</title>
+      <path d="M1 6l3.5 3.5L11 2" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }

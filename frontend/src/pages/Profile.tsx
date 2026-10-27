@@ -41,13 +41,21 @@ const ROLE_STYLE: Record<string, string> = {
 
 // ─── Shared field component ───────────────────────────────────────────────────
 
+function strengthLabel(strong: boolean, medium: boolean): string {
+  if (strong) return '✓ Strong password'
+  return medium ? 'Medium — add uppercase, numbers & symbols' : 'Too short'
+}
+
+/** Label wraps the control, so it's associated without needing an id. */
 function Field({
   label, error, children,
-}: { label: string; error?: string; children: React.ReactNode }) {
+}: Readonly<{ label: string; error?: string; children: React.ReactNode }>) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium text-ink-subtle">{label}</label>
-      {children}
+      <label className="block space-y-1.5">
+        <span className="text-xs font-medium text-ink-subtle">{label}</span>
+        {children}
+      </label>
       {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   )
@@ -243,7 +251,7 @@ export default function Profile() {
           {(() => {
             const pw = passwordForm.watch('newPassword') ?? ''
             if (!pw) return null
-            const strong = pw.length >= 12 && /[A-Z]/.test(pw) && /[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw)
+            const strong = pw.length >= 12 && /[A-Z]/.test(pw) && /\d/.test(pw) && /[^A-Za-z\d]/.test(pw)
             const medium = pw.length >= 8
             return (
               <div className="space-y-1">
@@ -261,7 +269,7 @@ export default function Profile() {
                   ))}
                 </div>
                 <p className="text-[11px] text-ink-subtle">
-                  {strong ? '✓ Strong password' : medium ? 'Medium — add uppercase, numbers & symbols' : 'Too short'}
+                  {strengthLabel(strong, medium)}
                 </p>
               </div>
             )

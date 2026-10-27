@@ -26,6 +26,7 @@ class AdmissionChargesTest {
         return Map.of("room_number", room, "room_type", "GENERAL", "daily_rate", new BigDecimal(rate), "created_at", Timestamp.valueOf(at));
     }
 
+    @SafeVarargs
     private void timeline(Map<String, Object>... segs) {
         when(jdbc.queryForList(anyString(), eq(1L))).thenReturn(List.of(segs));
     }

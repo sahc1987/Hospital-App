@@ -45,7 +45,8 @@ Every seeded demo account uses the password `Admin@123`: `admin`, `dr_smith`, `n
 ### Role-based access: two layers that must stay in sync
 1. **Route matrix (backend):** the `role_permissions` table (V5 migration) maps a role to frontend routes such as `/billing`. `SecurityConfig.checkAccessMatrix` enforces it for `/api/**`. It maps the first path segment after `/api` to a route using `API_ROUTES`; for example `bills` maps to `/billing`.
    - `ADMIN` always passes.
-   - Prefixes not in `API_ROUTES` (`auth`, `users`, `permissions`) fall through to plain authentication plus their `@PreAuthorize` annotations.
+   - **Deny by default:** a prefix missing from `API_ROUTES` gets a 403, unless it's in `SELF_GUARDED` (`auth`, `users`, `permissions`, which have their own checks). A new controller stays closed until it's mapped.
+   - Responses that mix movement data with clinical text must strip the clinical fields for non-clinical roles. `RoleVisibilityTest` guards the stay timeline and the appointment history.
    - `/api/dashboard/**` and `/api/appointments/today` are open to every authenticated role, because every role's dashboard calls them.
    - **When adding a controller or a page:**
      - Add an `API_ROUTES` entry.
@@ -63,7 +64,7 @@ The frontend fetches the matrix from `GET /api/permissions` in `DashboardLayout`
   - Bidirectional relations need `@JsonIgnore` on the back-reference. `LabResult.labTest` once caused infinite recursion.
   - `User.password` is `@JsonIgnore` because `User` hangs off `Doctor`, `Employee` and `LabResult`.
   - Only `User`, `Doctor` and `Patient` have DTOs; the latter two go through the MapStruct mappers in `mapper/`.
-- **Redis caching:** `@Cacheable` is used on doctors, patients and dashboard stats, and `@CacheEvict` in the services that write those. `RedisConfig` uses `DefaultTyping.EVERYTHING`, which is needed for final types and records such as `DashboardStats`. When you change a cached type's shape, flush the stale keys.
+- **Redis caching:** `@Cacheable` is used on patients and dashboard stats, with `@CacheEvict` in the services that write them. Doctors are uncached, because their lazy department proxy can't go into Redis. `RedisConfig` uses NON_FINAL typing extended to records (a small custom `DefaultTypeResolverBuilder`; Jackson 2.x has no built-in option for it), which records such as `DashboardStats` need. Don't cache entities that have lazy relations. When you change a cached type's shape, flush the stale keys.
 - **Schema:** Flyway owns it (`ddl-auto: validate`). Never edit an applied migration, because the checksums will fail; add `V<n+1>__*.sql` instead.
   - V3 installs DB triggers: `updated_at` timestamps, room status synced on admission and discharge (`fn_sync_room_on_admission`), and bill totals recalculated from bill items (`fn_recalc_bill_total`). Don't duplicate that logic in Java.
   - V4 converted the Postgres enum columns to TEXT, so entities use `@Enumerated(EnumType.STRING)`.
@@ -96,6 +97,11 @@ The frontend fetches the matrix from `GET /api/permissions` in `DashboardLayout`
 - **Timeline:** `admission_events` (ADMITTED/TRANSFER/DISCHARGED/NOTE/ADDENDUM) is the stay timeline. Its ADMITTED and TRANSFER rows are also the source for per-room charges (`AdmissionService.charges`; at least one night per stay).
 - **Clinical data:** vitals and the medication administration record live in plain tables accessed through JdbcTemplate. `GET /admissions/{id}/record` drops clinical fields for non-clinical roles, and the discharge summary fields are `@JsonIgnore` on the entity.
 - **Gotcha:** every repository method that feeds a JSON response needs an `@EntityGraph` for the relations it shows (including `findById`). Otherwise Hibernate6Module serializes lazy relations as null, and the UI crashes on `patient.dob`.
+
+### Record protection (V10) & covering doctors
+- Foreign keys from clinical and billing tables to `patients` and `doctors` are `ON DELETE RESTRICT`. Deleting someone with history returns 409, through the `DataIntegrityViolationException` handler. Never switch these back to CASCADE.
+- **Covering doctor:** `Doctor.hasLogin()` is false when a doctor record has no user account. Any doctor may then act for them: start and complete visits, document them, and discharge. See `AppointmentService.actsFor` and `AdmissionService.requireAttending`; the frontend mirrors this with `covers()` and `attending`.
+- Refresh-token reuse is blocked atomically by `TokenBlacklistService.claim` (Redis SET NX). Don't reintroduce check-then-set.
 
 ### Frontend conventions
 - `src/api/endpoints.ts` holds one typed function per backend call, built on the shared axios `client`.

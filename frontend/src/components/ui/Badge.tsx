@@ -18,7 +18,7 @@ interface BadgeProps {
   className?: string
 }
 
-export function Badge({ variant = 'default', children, className }: BadgeProps) {
+export function Badge({ variant = 'default', children, className }: Readonly<BadgeProps>) {
   return (
     <span className={cn('badge', variants[variant], className)}>
       {children}
@@ -38,7 +38,7 @@ const statusMap: Record<string, Variant> = {
   APPROVED: 'success',   REJECTED: 'danger',   SETTLED: 'success',
 }
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status }: Readonly<{ status: string }>) {
   const variant = statusMap[status] ?? 'default'
   return <Badge variant={variant}>{status.replace(/_/g, ' ')}</Badge>
 }

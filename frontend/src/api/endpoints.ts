@@ -3,7 +3,7 @@ import type {
   ApiResponse, PageResponse,
   Patient, Doctor, Department, Appointment, Room, Admission,
   LabTest, Bill, PharmacyItem, Employee, Payroll, DashboardStats, DashboardTrends, AuthUser, SystemUser,
-  AppointmentStatus, AppointmentHistoryEntry, Visit, PastVisit, RxItem, StayRecord, BoardRoom, AdmissionStatus,
+  AppointmentStatus, AppointmentHistoryEntry, Visit, PastVisit, RxItem, StayRecord, BoardRoom, AdmissionStatus, UserRole,
 } from '@/types'
 
 export interface AppointmentFilters {
@@ -18,7 +18,6 @@ export interface AppointmentFilters {
   q?: string
   mine?: boolean
 }
-import type { UserRole } from '@/types'
 
 // Auth
 export const authApi = {

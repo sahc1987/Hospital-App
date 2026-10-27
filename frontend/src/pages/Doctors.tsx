@@ -38,9 +38,8 @@ export default function Doctors() {
     mutationFn: ({ days, ...d }: DoctorForm) => {
       const body = { ...d, workDays: (days ?? []).join(','), slotMinutes: Number(d.slotMinutes),
         consultationFee: Number(d.consultationFee ?? 0) }
-      return editing
-        ? doctorApi.update(editing.id, body, deptId ? Number(deptId) : undefined)
-        : doctorApi.create(body, deptId ? Number(deptId) : undefined)
+      const department = deptId ? Number(deptId) : undefined
+      return editing ? doctorApi.update(editing.id, body, department) : doctorApi.create(body, department)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['doctors'] })
@@ -197,14 +196,15 @@ export default function Doctors() {
             </div>
             <Input label="Consultation fee ($, billed on completion; 0 = no bill)" type="number" min={0} step="0.01"
               {...register('consultationFee')} />
-            <div className="flex flex-wrap gap-3" role="group" aria-label="Working days">
+            <fieldset className="flex flex-wrap gap-3">
+              <legend className="sr-only">Working days</legend>
               {WEEK.map((day) => (
                 <label key={day} className="flex items-center gap-1.5 text-sm text-ink">
                   <input type="checkbox" value={day} {...register('days')} className="h-4 w-4 accent-primary" />
                   {day.charAt(0) + day.slice(1).toLowerCase()}
                 </label>
               ))}
-            </div>
+            </fieldset>
           </fieldset>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>Cancel</Button>

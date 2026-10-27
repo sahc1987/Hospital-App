@@ -37,6 +37,7 @@ import static com.hms.entity.enums.AppointmentStatus.*;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("java:S8688") // now() is hospital wall-clock time: the JVM zone *is* the hospital zone (TZ, see CLAUDE.md)
 public class AppointmentService {
 
     // ponytail: fixed horizon — make it a setting if a clinic needs longer advance booking
@@ -57,15 +58,23 @@ public class AppointmentService {
 
     @Transactional(readOnly = true)
     public Appointment findById(Long id) {
+        return load(id);
+    }
+
+    private Appointment load(Long id) {
         return repo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Appointment", id));
     }
 
     /** All filters optional. `mine` narrows a doctor to their own appointments (ignored for other roles). */
     @Transactional(readOnly = true)
-    public Page<Appointment> search(User actor, List<AppointmentStatus> statuses, Long doctorId, Long patientId,
-                                    LocalDate from, LocalDate to, String q, boolean mine, Pageable pageable) {
-        Long effectiveDoctor = mine ? ownDoctorId(actor) : null;
-        Long doctorFilter = effectiveDoctor != null ? effectiveDoctor : doctorId;
+    public Page<Appointment> search(User actor, AppointmentRequest.Filter f, Pageable pageable) {
+        Long effectiveDoctor = f.onlyMine() ? ownDoctorId(actor) : null;
+        Long doctorFilter = effectiveDoctor != null ? effectiveDoctor : f.doctorId();
+        List<AppointmentStatus> statuses = f.status();
+        Long patientId = f.patientId();
+        LocalDate from = f.from();
+        LocalDate to = f.to();
+        String q = f.q();
         Specification<Appointment> spec = (root, query, cb) -> {
             List<Predicate> p = new ArrayList<>();
             if (statuses != null && !statuses.isEmpty()) p.add(root.get("status").in(statuses));
@@ -101,10 +110,12 @@ public class AppointmentService {
                 doctorId, date.atStartOfDay(), date.plusDays(1).atStartOfDay(), INACTIVE);
         LocalDateTime now = LocalDateTime.now();
         List<LocalDateTime> free = new ArrayList<>();
-        int slot = d.getSlotMinutes(), endMin = minuteOfDay(d.getWorkEnd());
+        int slot = d.getSlotMinutes();
+        int endMin = minuteOfDay(d.getWorkEnd());
         // ponytail: O(slots × bookings) per day — trivially small (≈16 × 16)
         for (int m = minuteOfDay(d.getWorkStart()); m + slot <= endMin; m += slot) {
-            LocalDateTime start = date.atStartOfDay().plusMinutes(m), end = start.plusMinutes(slot);
+            LocalDateTime start = date.atStartOfDay().plusMinutes(m);
+            LocalDateTime end = start.plusMinutes(slot);
             boolean taken = booked.stream().anyMatch(a -> a.getAppointmentDate().isBefore(end) && a.getEndDate().isAfter(start));
             if (start.isAfter(now) && !taken) free.add(start);
         }
@@ -112,10 +123,14 @@ public class AppointmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> history(Long id) {
-        findById(id);
+    public List<Map<String, Object>> history(User actor, Long id) {
+        load(id);
         List<Map<String, Object>> rows = jdbc.queryForList("SELECT action, from_status, to_status, note, changed_by, changed_at "
                 + "FROM appointment_history WHERE appointment_id = ? ORDER BY changed_at, id", id);
+        // Addenda are clinical record (corrections to the visit note): clinical roles only
+        if (actor == null || !CLINICAL.contains(actor.getRole())) {
+            rows = new ArrayList<>(rows.stream().filter(r -> !"ADDENDUM".equals(r.get("action"))).toList());
+        }
         // java.sql.Timestamp would serialize as UTC+offset; every other API date is naive hospital-local
         rows.forEach(r -> r.computeIfPresent("changed_at", (k, v) -> ((java.sql.Timestamp) v).toLocalDateTime()));
         return rows;
@@ -143,7 +158,7 @@ public class AppointmentService {
     @Transactional
     @CacheEvict(value = "dashboard", allEntries = true)
     public Appointment update(User actor, Long id, AppointmentRequest.Update req) {
-        Appointment a = findById(id);
+        Appointment a = load(id);
         requireBookingRights(actor, a.getDoctor().getId());
         if (!a.getStatus().isOpen()) {
             throw new BadRequestException("Only scheduled or confirmed appointments can be changed");
@@ -167,21 +182,36 @@ public class AppointmentService {
     @Transactional
     @CacheEvict(value = "dashboard", allEntries = true)
     public Appointment changeStatus(User actor, Long id, AppointmentRequest.StatusChange req) {
-        Appointment a = findById(id);
-        AppointmentStatus from = a.getStatus(), to = req.status();
-        Long own = ownDoctorId(actor);
-        boolean isOwnDoctor = own != null && own.equals(a.getDoctor().getId());
-        boolean admin = actor.getRole() == UserRole.ADMIN;
+        Appointment a = load(id);
+        AppointmentStatus from = a.getStatus();
+        AppointmentStatus to = req.status();
+        requireStatusRights(actor, a, to);
+        checkTransition(a, to, req.note());
 
-        if (to.isClinical() ? !(admin || isOwnDoctor) : !(FRONT_DESK.contains(actor.getRole()) || isOwnDoctor)) {
-            throw new AccessDeniedException(to.isClinical()
-                    ? "Only the appointment's doctor can start or complete the consultation"
-                    : "You can only change your own appointments");
+        stamp(a, to, req.note());
+        log(id, "STATUS", from, to, req.note(), actor);
+        Appointment saved = save(a);
+        if (to == COMPLETED) billConsultation(saved);
+        return saved;
+    }
+
+    private void requireStatusRights(User actor, Appointment a, AppointmentStatus to) {
+        boolean actsFor = actsFor(actor, a.getDoctor());
+        if (to.isClinical()) {
+            if (actor.getRole() != UserRole.ADMIN && !actsFor) {
+                throw new AccessDeniedException("Only the appointment's doctor can start or complete the consultation");
+            }
+        } else if (!FRONT_DESK.contains(actor.getRole()) && !actsFor) {
+            throw new AccessDeniedException("You can only change your own appointments");
         }
+    }
+
+    private static void checkTransition(Appointment a, AppointmentStatus to, String note) {
+        AppointmentStatus from = a.getStatus();
         if (!from.next().contains(to)) {
             throw new BadRequestException("Cannot change " + label(from) + " to " + label(to));
         }
-        if (to == CANCELLED && (req.note() == null || req.note().isBlank())) {
+        if (to == CANCELLED && blank(note)) {
             throw new BadRequestException("A reason is required to cancel");
         }
         LocalDate day = a.getAppointmentDate().toLocalDate();
@@ -195,20 +225,19 @@ public class AppointmentService {
         if (to == COMPLETED && (blank(a.getDiagnosis()) || blank(a.getVisitNote()))) {
             throw new BadRequestException("Add a diagnosis and visit note before completing");
         }
+    }
 
+    /** Applies the new status plus its timestamp / cancel reason. */
+    private static void stamp(Appointment a, AppointmentStatus to, String note) {
         LocalDateTime now = LocalDateTime.now();
         a.setStatus(to);
         switch (to) {
-            case CANCELLED -> a.setCancelReason(req.note());
+            case CANCELLED -> a.setCancelReason(note);
             case CHECKED_IN -> a.setCheckedInAt(now);
             case IN_CONSULTATION -> a.setStartedAt(now);
             case COMPLETED -> a.setCompletedAt(now);
-            default -> { }
+            default -> { /* CONFIRMED / NO_SHOW / SCHEDULED carry no timestamp */ }
         }
-        log(id, "STATUS", from, to, req.note(), actor);
-        Appointment saved = save(a);
-        if (to == COMPLETED) billConsultation(saved);
-        return saved;
     }
 
     // ─── Consultation ────────────────────────────────────────────────────────
@@ -217,12 +246,12 @@ public class AppointmentService {
     @Transactional(readOnly = true)
     public Map<String, Object> visit(User actor, Long id) {
         requireClinical(actor);
-        Appointment a = findById(id);
+        Appointment a = load(id);
         Map<String, Object> v = new java.util.HashMap<>();
         v.put("diagnosis", a.getDiagnosis());
         v.put("visitNote", a.getVisitNote());
         v.put("prescription", prescription(id));
-        v.put("addenda", history(id).stream().filter(h -> "ADDENDUM".equals(h.get("action"))).toList());
+        v.put("addenda", history(actor, id).stream().filter(h -> "ADDENDUM".equals(h.get("action"))).toList());
         v.put("labTests", jdbc.queryForList("SELECT id, test_name, status FROM lab_tests WHERE appointment_id = ? ORDER BY id", id));
         return v;
     }
@@ -258,7 +287,7 @@ public class AppointmentService {
 
     @Transactional
     public void addAddendum(User actor, Long id, AppointmentRequest.Addendum req) {
-        Appointment a = findById(id);
+        Appointment a = load(id);
         requireTreatingDoctor(actor, a);
         if (a.getStatus() != COMPLETED) throw new BadRequestException("Addenda are for completed visits; edit the note instead");
         log(id, "ADDENDUM", null, null, req.note(), actor);
@@ -283,7 +312,7 @@ public class AppointmentService {
 
     /** Visit documentation is the treating doctor's, only while the patient is here. */
     private Appointment documentable(User actor, Long id) {
-        Appointment a = findById(id);
+        Appointment a = load(id);
         requireTreatingDoctor(actor, a);
         if (a.getStatus() != CHECKED_IN && a.getStatus() != IN_CONSULTATION) {
             throw new BadRequestException(a.getStatus() == COMPLETED
@@ -294,10 +323,16 @@ public class AppointmentService {
     }
 
     private void requireTreatingDoctor(User actor, Appointment a) {
-        if (actor.getRole() == UserRole.ADMIN) return;
-        if (!a.getDoctor().getId().equals(ownDoctorId(actor))) {
+        if (!actsFor(actor, a.getDoctor())) {
             throw new AccessDeniedException("Only the treating doctor can document this visit");
         }
+    }
+
+    /** Admin, the doctor themself, or — when that doctor has no login — any doctor covering for them. */
+    private boolean actsFor(User actor, Doctor d) {
+        if (actor.getRole() == UserRole.ADMIN) return true;
+        if (actor.getRole() != UserRole.DOCTOR) return false;
+        return !d.hasLogin() || d.getId().equals(ownDoctorId(actor));
     }
 
     private static void requireClinical(User actor) {
@@ -327,7 +362,8 @@ public class AppointmentService {
             throw new BadRequestException(d.getName() + " doesn't work on " + start.getDayOfWeek().name().toLowerCase());
         }
         // Minutes-of-day ints: LocalTime arithmetic silently wraps at midnight
-        int m = minuteOfDay(start.toLocalTime()), open = minuteOfDay(d.getWorkStart());
+        int m = minuteOfDay(start.toLocalTime());
+        int open = minuteOfDay(d.getWorkStart());
         boolean onGrid = start.getSecond() == 0 && start.getNano() == 0 && (m - open) % d.getSlotMinutes() == 0;
         if (m < open || m + minutes > minuteOfDay(d.getWorkEnd()) || !onGrid) {
             throw new BadRequestException("Pick a " + d.getSlotMinutes() + "-minute slot between "

@@ -41,7 +41,7 @@ public class AdmissionController {
     /** Timeline + LOS + running cost for all; summary, notes, vitals, meds for clinical roles. */
     @GetMapping("/{id}/record")
     public ResponseEntity<ApiResponse<Map<String, Object>>> record(@AuthenticationPrincipal User user, @PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(service.record(user, id)));
+        return ResponseEntity.ok(ApiResponse.ok(service.stayRecord(user, id)));
     }
 
     @GetMapping("/patient/{patientId}")

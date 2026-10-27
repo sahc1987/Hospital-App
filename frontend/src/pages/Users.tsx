@@ -210,102 +210,8 @@ export default function Users() {
       </div>
 
       {/* ── Table ──────────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-border bg-surface overflow-hidden overflow-x-auto">
-        {isLoading ? (
-          <div className="flex h-40 items-center justify-center text-sm text-ink-subtle">Loading…</div>
-        ) : users.length === 0 ? (
-          <div className="flex h-40 items-center justify-center text-sm text-ink-subtle">No users found</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-surface-alt">
-                <th className="px-4 py-3 text-left font-medium text-ink-subtle">User</th>
-                <th className="px-4 py-3 text-left font-medium text-ink-subtle">Username</th>
-                <th className="px-4 py-3 text-left font-medium text-ink-subtle">Role</th>
-                <th className="px-4 py-3 text-left font-medium text-ink-subtle">Staff Profile</th>
-                <th className="px-4 py-3 text-left font-medium text-ink-subtle">Status</th>
-                <th className="px-4 py-3 text-left font-medium text-ink-subtle">Created</th>
-                <th className="px-4 py-3 text-right font-medium text-ink-subtle">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {users.map((user) => {
-                const staff = user.linkedStaff
-                const staffStyle = staff ? STAFF_COLORS[staff.type] : null
-                return (
-                  <tr key={user.id} className="hover:bg-surface-alt/50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-semibold">
-                          {user.fullName.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-ink">{user.fullName}</p>
-                          <p className="text-xs text-ink-subtle">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-ink-subtle font-mono text-xs">{user.username}</td>
-                    <td className="px-4 py-3">
-                      <span className={cn('inline-flex items-center rounded-lg px-2.5 py-0.5 text-xs font-medium', ROLE_COLORS[user.role])}>
-                        {user.role.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {staff && staffStyle ? (
-                        <span className={cn('inline-flex items-center gap-1.5 rounded-lg px-2.5 py-0.5 text-xs font-medium', staffStyle.badge)}>
-                          <staffStyle.icon size={11} />
-                          {staff.name}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-ink-subtle">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={cn(
-                        'inline-flex items-center rounded-lg px-2.5 py-0.5 text-xs font-medium',
-                        user.active ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger',
-                      )}>
-                        {user.active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-ink-subtle text-xs">
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => toggleMutation.mutate(user.id)}
-                          title={user.active ? 'Deactivate' : 'Activate'}
-                          className="rounded-lg p-1.5 text-ink-subtle hover:bg-surface-alt hover:text-ink transition-colors"
-                        >
-                          {user.active
-                            ? <ToggleRight size={16} className="text-success" />
-                            : <ToggleLeft  size={16} />}
-                        </button>
-                        <button
-                          onClick={() => openEdit(user)}
-                          title="Edit"
-                          className="rounded-lg p-1.5 text-ink-subtle hover:bg-surface-alt hover:text-ink transition-colors"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(user)}
-                          title="Delete"
-                          className="rounded-lg p-1.5 text-ink-subtle hover:bg-danger/10 hover:text-danger transition-colors"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <UsersTable users={users} loading={isLoading} onToggle={(u) => toggleMutation.mutate(u.id)}
+        onEdit={openEdit} onDelete={setDeleteTarget} />
 
       {/* ── Pagination ─────────────────────────────────────────────── */}
       {total > 1 && (
@@ -472,17 +378,125 @@ export default function Users() {
   )
 }
 
+// ─── Users table ──────────────────────────────────────────────────────────────
+
+type RowActions = Readonly<{ onToggle: (u: SystemUser) => void; onEdit: (u: SystemUser) => void; onDelete: (u: SystemUser) => void }>
+
+function UsersTable({ users, loading, onToggle, onEdit, onDelete }: RowActions & Readonly<{ users: SystemUser[]; loading: boolean }>) {
+  let body: React.ReactNode
+  if (loading) {
+    body = <div className="flex h-40 items-center justify-center text-sm text-ink-subtle">Loading…</div>
+  } else if (users.length === 0) {
+    body = <div className="flex h-40 items-center justify-center text-sm text-ink-subtle">No users found</div>
+  } else {
+    body = (
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border bg-surface-alt">
+            <th className="px-4 py-3 text-left font-medium text-ink-subtle">User</th>
+            <th className="px-4 py-3 text-left font-medium text-ink-subtle">Username</th>
+            <th className="px-4 py-3 text-left font-medium text-ink-subtle">Role</th>
+            <th className="px-4 py-3 text-left font-medium text-ink-subtle">Staff Profile</th>
+            <th className="px-4 py-3 text-left font-medium text-ink-subtle">Status</th>
+            <th className="px-4 py-3 text-left font-medium text-ink-subtle">Created</th>
+            <th className="px-4 py-3 text-right font-medium text-ink-subtle">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {users.map((user) => <UserRow key={user.id} user={user} onToggle={onToggle} onEdit={onEdit} onDelete={onDelete} />)}
+        </tbody>
+      </table>
+    )
+  }
+  return <div className="rounded-2xl border border-border bg-surface overflow-hidden overflow-x-auto">{body}</div>
+}
+
+function UserRow({ user, onToggle, onEdit, onDelete }: RowActions & Readonly<{ user: SystemUser }>) {
+  const staff = user.linkedStaff
+  const staffStyle = staff ? STAFF_COLORS[staff.type] : null
+  return (
+    <tr className="hover:bg-surface-alt/50 transition-colors">
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-semibold">
+            {user.fullName.charAt(0)}
+          </div>
+          <div>
+            <p className="font-medium text-ink">{user.fullName}</p>
+            <p className="text-xs text-ink-subtle">{user.email}</p>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-3 text-ink-subtle font-mono text-xs">{user.username}</td>
+      <td className="px-4 py-3">
+        <span className={cn('inline-flex items-center rounded-lg px-2.5 py-0.5 text-xs font-medium', ROLE_COLORS[user.role])}>
+          {user.role.replace('_', ' ')}
+        </span>
+      </td>
+      <td className="px-4 py-3">
+        {staff && staffStyle ? (
+          <span className={cn('inline-flex items-center gap-1.5 rounded-lg px-2.5 py-0.5 text-xs font-medium', staffStyle.badge)}>
+            <staffStyle.icon size={11} />
+            {staff.name}
+          </span>
+        ) : (
+          <span className="text-xs text-ink-subtle">—</span>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        <span className={cn(
+          'inline-flex items-center rounded-lg px-2.5 py-0.5 text-xs font-medium',
+          user.active ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger',
+        )}>
+          {user.active ? 'Active' : 'Inactive'}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-ink-subtle text-xs">
+        {new Date(user.createdAt).toLocaleDateString()}
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center justify-end gap-1">
+          <button
+            onClick={() => onToggle(user)}
+            title={user.active ? 'Deactivate' : 'Activate'}
+            aria-label={(user.active ? 'Deactivate ' : 'Activate ') + user.username}
+            className="rounded-lg p-1.5 text-ink-subtle hover:bg-surface-alt hover:text-ink transition-colors"
+          >
+            {user.active
+              ? <ToggleRight size={16} className="text-success" />
+              : <ToggleLeft  size={16} />}
+          </button>
+          <button
+            onClick={() => onEdit(user)}
+            title="Edit" aria-label={'Edit ' + user.username}
+            className="rounded-lg p-1.5 text-ink-subtle hover:bg-surface-alt hover:text-ink transition-colors"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={() => onDelete(user)}
+            title="Delete" aria-label={'Delete ' + user.username}
+            className="rounded-lg p-1.5 text-ink-subtle hover:bg-danger/10 hover:text-danger transition-colors"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </td>
+    </tr>
+  )
+}
+
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
 function UserFormFields({
   form,
   isCreate,
   departments = [],
-}: {
+}: Readonly<{
   form: any
   isCreate: boolean
   departments?: Department[]
-}) {
+}>) {
   const { register, watch, formState: { errors } } = form
   const role = isCreate ? (watch('role') as UserRole | '') : ''
   const isDoctor   = role === 'DOCTOR'
@@ -521,7 +535,6 @@ function UserFormFields({
 
       {/* ── Doctor-specific fields ── */}
       {isDoctor && (
-        <>
           <div className="border-t border-border pt-4">
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-subtle flex items-center gap-1.5">
               <Stethoscope size={11} /> Doctor Profile
@@ -544,12 +557,10 @@ function UserFormFields({
               </Field>
             </div>
           </div>
-        </>
       )}
 
       {/* ── Employee-specific fields ── */}
       {isEmployee && (
-        <>
           <div className="border-t border-border pt-4">
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-subtle flex items-center gap-1.5">
               <UserCog size={11} /> Staff Profile
@@ -569,13 +580,12 @@ function UserFormFields({
               </Field>
             </div>
           </div>
-        </>
       )}
     </>
   )
 }
 
-function ModalActions({ onCancel, isPending, label }: { onCancel: () => void; isPending: boolean; label: string }) {
+function ModalActions({ onCancel, isPending, label }: Readonly<{ onCancel: () => void; isPending: boolean; label: string }>) {
   return (
     <div className="flex justify-end gap-3 pt-2">
       <button type="button" onClick={onCancel}
@@ -590,11 +600,13 @@ function ModalActions({ onCancel, isPending, label }: { onCancel: () => void; is
   )
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({ label, error, children }: Readonly<{ label: string; error?: string; children: React.ReactNode }>) {
   return (
     <div className="space-y-1">
-      <label className="text-xs font-medium text-ink-subtle">{label}</label>
-      {children}
+      <label className="block space-y-1">
+        <span className="text-xs font-medium text-ink-subtle">{label}</span>
+        {children}
+      </label>
       {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   )

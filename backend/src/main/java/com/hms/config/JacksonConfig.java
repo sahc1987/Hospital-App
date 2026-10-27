@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 public class JacksonConfig {
 
     @Bean
-    public Hibernate6Module hibernate6Module() {
+    Hibernate6Module hibernate6Module() {
         return new Hibernate6Module();
     }
 }

@@ -45,7 +45,7 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   options: { value: string | number; label: string }[]
 }
 
-export function Select({ label, error, options, className, id, ...props }: SelectProps) {
+export function Select({ label, error, options, className, id, ...props }: Readonly<SelectProps>) {
   const autoId = useId()
   const selectId = id ?? autoId
   return (

@@ -5,7 +5,7 @@
 **One dashboard to run a hospital: patients, appointments, admissions, lab, pharmacy, billing, and payroll, with each role seeing only what it needs.**
 
 ![Java](https://img.shields.io/badge/Java_21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot_3.4-6DB33F?style=flat-square&logo=springboot&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot_3.5-6DB33F?style=flat-square&logo=springboot&logoColor=white)
 ![React](https://img.shields.io/badge/React_18-20232A?style=flat-square&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL_16-4169E1?style=flat-square&logo=postgresql&logoColor=white)
@@ -203,7 +203,7 @@ flowchart TB
 | Layer | Technology |
 | --- | --- |
 | Web | React 18, TypeScript 5.5, Vite 5, React Router 6, TanStack Query, Axios, Zustand, React Hook Form + Zod, Tailwind CSS, Headless UI, Recharts, Lucide |
-| API | Java 21, Spring Boot 3.4 (Web, Data JPA, Security, Validation, Actuator), JWT (jjwt), MapStruct, Lombok |
+| API | Java 21, Spring Boot 3.5 (Web, Data JPA, Security, Validation, Actuator), JWT (jjwt), MapStruct, Lombok |
 | Data | PostgreSQL 16 with Flyway migrations, Redis 7 |
 | Infrastructure | Docker Compose, Nginx |
 | Tooling | Maven, ESLint; tests with JUnit and Spring Boot Test |
@@ -218,11 +218,12 @@ flowchart TB
 | --- | --- |
 | 🔑 Passwords | Stored only as bcrypt hashes, never sent back in a response or written to the cache |
 | 🍪 Sign-in | Access and refresh tokens in **httpOnly, `SameSite=Strict` cookies**. Tokens never appear in response bodies or browser storage |
-| 🔁 Refresh | Refreshing rotates both tokens, and each refresh token works only once |
+| 🔁 Refresh | Refreshing rotates both tokens, and each refresh token works only once, even when two requests use it at the same moment |
 | 🚪 Sign-out | Revoked tokens are blacklisted in Redis until they expire. Deactivating a user cuts off their access right away |
 | 🧩 Token types | Access and refresh tokens are typed, so one can't be used in place of the other |
 | 🚦 Lockout | 5 wrong passwords lock that username for 15 minutes (counter kept in Redis) |
 | 🧑‍⚖️ Permissions | Checked by the API on every request against the access matrix |
+| 🗄️ History is kept | Patients and doctors with clinical or billing history can't be deleted (the database refuses, and the API answers 409). Appointments are cancelled, never deleted |
 | 🩺 Clinical records | Visit notes, diagnoses, and prescriptions are left out of the general appointment data and served only to admins, doctors, and nurses. Completed notes can't be edited, only amended |
 | 🛡️ Admin safeguards | An admin can't deactivate or delete their own account, or remove their own `ADMIN` role |
 | 🪖 Headers | Nginx sends a Content Security Policy, `X-Frame-Options: DENY`, `nosniff`, a Referrer-Policy and a Permissions-Policy |

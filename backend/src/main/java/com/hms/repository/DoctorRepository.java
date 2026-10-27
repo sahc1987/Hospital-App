@@ -22,8 +22,6 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
     @EntityGraph(attributePaths = {"department"})
     List<Doctor> findByDepartmentId(Long departmentId);
 
-    long countByDepartmentId(Long departmentId);
-
     Optional<Doctor> findByUser_Id(Long userId);
 
     List<Doctor> findByUser_IdIn(Collection<Long> userIds);

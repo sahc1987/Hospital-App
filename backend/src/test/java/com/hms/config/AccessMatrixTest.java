@@ -31,6 +31,8 @@ class AccessMatrixTest {
         assertFalse(allowed(UserRole.PHARMACIST, "/api/payroll/employee/1"));
         assertFalse(allowed(UserRole.NURSE, "/api/bills"));   // bills -> /billing, not granted
         assertTrue(allowed(UserRole.ADMIN, "/api/bills"));    // admin bypass
-        assertTrue(allowed(UserRole.NURSE, "/api/auth/me"));  // unmapped prefix falls through
+        assertTrue(allowed(UserRole.NURSE, "/api/auth/me"));  // self-guarded prefix
+        assertFalse(allowed(UserRole.NURSE, "/api/newmodule")); // unmapped prefix: denied by default
+        assertFalse(allowed(UserRole.NURSE, "/api/PAYROLL"));   // case tricks don't fall through
     }
 }

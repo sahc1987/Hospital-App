@@ -54,7 +54,7 @@ export function AdmitModal({ preset, onClose, onAdmitted }: {
         <Select label="Patient" required value={patientId} disabled={!!preset.patientId}
           onChange={(e) => setPatientId(e.target.value)} options={patients.map((p) => ({ value: p.id, label: p.name }))} />
         <Select label="Attending doctor" required value={doctorId} onChange={(e) => setDoctorId(e.target.value)}
-          options={doctors.map((d) => ({ value: d.id, label: `${d.name}${d.specialization ? ` — ${d.specialization}` : ''}` }))} />
+          options={doctors.map((d) => ({ value: d.id, label: d.specialization ? d.name + ' — ' + d.specialization : d.name }))} />
         <Select label="Room (free beds only)" value={roomId} onChange={(e) => setRoomId(e.target.value)}
           options={free.map((b) => ({
             value: b.room.id,

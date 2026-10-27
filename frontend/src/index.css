@@ -100,7 +100,7 @@ progress.ring {
   border: 0;
   border-radius: 50%;
   background: conic-gradient(var(--fill, theme('colors.primary.DEFAULT')) calc(var(--value) * 1%),
-                             var(--track, theme('colors.coral.light')) 0);
+                             var(--track, #FDECEC /* coral light tint */) 0);
   /* Hollow the centre with a mask. background-clip: border-area left the centre filled in
      Chrome 150 despite @supports passing, so the mask is used everywhere. */
   mask-image: radial-gradient(transparent calc(70.7% - var(--thickness) * 1.414),

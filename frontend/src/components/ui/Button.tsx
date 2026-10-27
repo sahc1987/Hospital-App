@@ -34,7 +34,7 @@ export function Button({
   className,
   disabled,
   ...props
-}: ButtonProps) {
+}: Readonly<ButtonProps>) {
   return (
     <button
       disabled={disabled || loading}

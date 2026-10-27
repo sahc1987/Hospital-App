@@ -9,7 +9,6 @@ import java.util.List;
 
 public interface PharmacyItemRepository extends JpaRepository<PharmacyItem, Long> {
     Page<PharmacyItem> findByNameContainingIgnoreCase(String name, Pageable pageable);
-    List<PharmacyItem> findByCategory(String category);
 
     @Query("SELECT p FROM PharmacyItem p WHERE p.stockQuantity <= p.reorderLevel")
     List<PharmacyItem> findLowStock();

@@ -29,7 +29,8 @@ function trendPct(series: number[]): number | null {
 
 function greeting(d = new Date()) {
   const h = d.getHours()
-  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
+  if (h < 12) return 'Good morning'
+  return h < 18 ? 'Good afternoon' : 'Good evening'
 }
 
 /** "Dr. James Smith" → "Dr. Smith"; "Anna Thompson" → "Anna". */
@@ -39,7 +40,12 @@ function shortName(full?: string) {
   return parts[0].startsWith('Dr') ? `${parts[0]} ${parts[parts.length - 1]}` : parts[0]
 }
 
-const withDr = (name?: string) => (!name ? '—' : name.startsWith('Dr') ? name : `Dr. ${name}`)
+function withDr(name?: string) {
+  if (!name) return '—'
+  return name.startsWith('Dr') ? name : 'Dr. ' + name
+}
+
+const signed = (n: number) => (n > 0 ? '+' : '') + n
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -132,6 +138,11 @@ function WelcomeBanner({ name }: { readonly name: string }) {
   )
 }
 
+/** Recharts clones this per point with cx/cy/index; only the last point gets a dot. */
+function EndDot({ cx, cy, index, last, fill }: Readonly<{ cx?: number; cy?: number; index?: number; last: number; fill: string }>) {
+  return index === last ? <circle cx={cx} cy={cy} r={3.5} fill={fill} /> : <g />
+}
+
 const tints = {
   coral:   { box: 'bg-coral-light',  pill: 'bg-coral-light text-danger-ink',  hex: HEX.coral },
   mint:    { box: 'bg-mint-light',   pill: 'bg-mint-light text-success-ink',  hex: HEX.mint },
@@ -160,9 +171,7 @@ function TrendTile({ title, tint, value, caption, series, seriesLabel }: {
               <LineChart data={data} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
                 <Line
                   type="monotone" dataKey="v" stroke={t.hex} strokeWidth={2} isAnimationActive={!reduceMotion}
-                  dot={({ cx, cy, index }) => index === last
-                    ? <circle key="end" cx={cx} cy={cy} r={3.5} fill={t.hex} />
-                    : <g key={index} />}
+                  dot={<EndDot last={last} fill={t.hex} />}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -180,7 +189,7 @@ function TrendTile({ title, tint, value, caption, series, seriesLabel }: {
           className={cn('mt-2 inline-block whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-medium', t.pill)}
           title="Today compared with the average of the previous 6 days"
         >
-          {pct === null ? 'No baseline yet' : `${pct > 0 ? '+' : ''}${pct}% vs avg`}
+          {pct === null ? 'No baseline yet' : signed(pct) + '% vs avg'}
         </p>
       </div>
     </section>
@@ -273,6 +282,12 @@ function AppointmentProgress({ appointments }: { readonly appointments: Appointm
   )
 }
 
+const activeLabel = (active: boolean) => (active ? 'Active' : 'Inactive')
+function staffLabel(type?: string): string {
+  if (type === 'DOCTOR') return 'Doctor'
+  return type ? 'Employee' : 'None'
+}
+
 function ProfileCard() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
@@ -283,8 +298,8 @@ function ProfileCard() {
   const role = user?.role?.toLowerCase().replace('_', ' ')
   const facts = [
     { label: 'Member since', value: me?.createdAt ? format(parseISO(me.createdAt), 'MMM yyyy') : '—' },
-    { label: 'Status',       value: me ? (me.active ? 'Active' : 'Inactive') : '—' },
-    { label: 'Staff record', value: me ? (me.linkedStaff?.type === 'DOCTOR' ? 'Doctor' : me.linkedStaff ? 'Employee' : 'None') : '—' },
+    { label: 'Status',       value: me ? activeLabel(me.active) : '—' },
+    { label: 'Staff record', value: me ? staffLabel(me.linkedStaff?.type) : '—' },
   ]
 
   return (
@@ -326,8 +341,10 @@ function ProfileCard() {
   )
 }
 
-const dotColor = (s: Appointment['status']) =>
-  s === 'COMPLETED' ? 'bg-mint' : s === 'CANCELLED' || s === 'NO_SHOW' ? 'bg-coral' : 'bg-primary'
+function dotColor(s: Appointment['status']): string {
+  if (s === 'COMPLETED') return 'bg-mint'
+  return s === 'CANCELLED' || s === 'NO_SHOW' ? 'bg-coral' : 'bg-primary'
+}
 
 function WeekCalendar({ appointments }: { readonly appointments: Appointment[] }) {
   const now = new Date()

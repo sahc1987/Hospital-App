@@ -38,11 +38,16 @@ import java.util.*;
  */
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("java:S8688") // now() is hospital wall-clock time: the JVM zone *is* the hospital zone (TZ, see CLAUDE.md)
 public class AdmissionService {
 
     private static final Set<UserRole> MOVERS = Set.of(UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.NURSE, UserRole.DOCTOR);
     private static final Set<UserRole> CLINICAL = Set.of(UserRole.ADMIN, UserRole.DOCTOR, UserRole.NURSE);
-    private static final Set<String> MOVEMENT = Set.of("ADMITTED", "TRANSFER", "DISCHARGED");
+    private static final String ADMITTED = "ADMITTED";
+    private static final String CREATED_AT = "created_at";
+    private static final String NIGHTS = "nights";
+    private static final String AMOUNT = "amount";
+    private static final Set<String> MOVEMENT = Set.of(ADMITTED, "TRANSFER", "DISCHARGED");
 
     private final AdmissionRepository admissionRepo;
     private final PatientRepository patientRepo;
@@ -61,6 +66,10 @@ public class AdmissionService {
 
     @Transactional(readOnly = true)
     public Admission findById(Long id) {
+        return load(id);
+    }
+
+    private Admission load(Long id) {
         return admissionRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Admission", id));
     }
 
@@ -74,19 +83,25 @@ public class AdmissionService {
      * discharge summary, progress notes, vitals and medications only for clinical roles.
      */
     @Transactional(readOnly = true)
-    public Map<String, Object> record(User actor, Long id) {
-        Admission a = findById(id);
+    public Map<String, Object> stayRecord(User actor, Long id) {
+        Admission a = load(id);
         boolean clinical = CLINICAL.contains(actor.getRole());
         List<Map<String, Object>> events = localTimes(jdbc.queryForList(
                 "SELECT e.id, e.type, e.note, e.author, e.created_at, fr.room_number AS from_room, tr.room_number AS to_room "
                         + "FROM admission_events e LEFT JOIN rooms fr ON fr.id = e.from_room_id LEFT JOIN rooms tr ON tr.id = e.to_room_id "
-                        + "WHERE e.admission_id = ? ORDER BY e.created_at, e.id", id), "created_at");
-        if (!clinical) events = events.stream().filter(e -> MOVEMENT.contains(e.get("type"))).toList();
+                        + "WHERE e.admission_id = ? ORDER BY e.created_at, e.id", id), CREATED_AT);
+        if (!clinical) {
+            // Movements only, and never the note: DISCHARGED carries the final diagnosis, TRANSFER a clinical reason
+            events = events.stream().filter(e -> MOVEMENT.contains(e.get("type"))).toList();
+            events.forEach(e -> e.remove("note"));
+        }
 
         Map<String, Object> r = new HashMap<>();
         r.put("events", events);
         r.put("losDays", nights(a.getAdmissionDate(), a.getDischargeDate() != null ? a.getDischargeDate() : LocalDateTime.now()));
-        r.put("accruedCost", charges(a, LocalDateTime.now()).stream().map(c -> (BigDecimal) c.get("amount"))
+        // Discharged stays stop accruing at discharge
+        r.put("accruedCost", charges(a, a.getDischargeDate() != null ? a.getDischargeDate() : LocalDateTime.now())
+                .stream().map(c -> (BigDecimal) c.get(AMOUNT))
                 .reduce(BigDecimal.ZERO, BigDecimal::add));
         if (clinical) {
             r.put("finalDiagnosis", a.getFinalDiagnosis());
@@ -132,7 +147,7 @@ public class AdmissionService {
         Admission saved = save(Admission.builder()
                 .patient(patient).doctor(doctor).room(room).admissionDate(at)
                 .diagnosis(req.diagnosis()).appointmentId(req.appointmentId()).build());
-        event(saved.getId(), "ADMITTED", req.diagnosis(), null, room, actor, at);
+        event(saved.getId(), ADMITTED, req.diagnosis(), null, room, actor, at);
         return saved;
     }
 
@@ -144,7 +159,8 @@ public class AdmissionService {
         if (a.getRoom() != null && a.getRoom().getId().equals(req.roomId())) {
             throw new BadRequestException("The patient is already in that room");
         }
-        Room from = a.getRoom(), to = checkBedFree(req.roomId());
+        Room from = a.getRoom();
+        Room to = checkBedFree(req.roomId());
         a.setRoom(to);
         Admission saved = save(a);
         event(id, "TRANSFER", req.note(), from, to, actor, LocalDateTime.now());
@@ -177,7 +193,7 @@ public class AdmissionService {
     @Transactional
     public void addNote(User actor, Long id, AdmissionRequest.Note req) {
         require(CLINICAL, actor, "Only clinical staff can write notes");
-        Admission a = findById(id);
+        Admission a = load(id);
         event(id, a.getStatus() == AdmissionStatus.ADMITTED ? "NOTE" : "ADDENDUM", req.note(), null, null, actor, LocalDateTime.now());
     }
 
@@ -249,15 +265,15 @@ public class AdmissionService {
                         + "ORDER BY e.created_at, e.id", a.getId());
         List<Map<String, Object>> lines = new ArrayList<>();
         for (int i = 0; i < segs.size(); i++) {
-            LocalDateTime from = ((Timestamp) segs.get(i).get("created_at")).toLocalDateTime();
-            LocalDateTime to = i + 1 < segs.size() ? ((Timestamp) segs.get(i + 1).get("created_at")).toLocalDateTime() : end;
+            LocalDateTime from = ((Timestamp) segs.get(i).get(CREATED_AT)).toLocalDateTime();
+            LocalDateTime to = i + 1 < segs.size() ? ((Timestamp) segs.get(i + 1).get(CREATED_AT)).toLocalDateTime() : end;
             long n = nights(from, to);
-            if (i == segs.size() - 1 && lines.stream().mapToLong(l -> (long) l.get("nights")).sum() + n == 0) n = 1; // minimum one night
+            if (i == segs.size() - 1 && lines.stream().mapToLong(l -> (long) l.get(NIGHTS)).sum() + n == 0) n = 1; // minimum one night
             BigDecimal rate = (BigDecimal) segs.get(i).get("daily_rate");
             if (n == 0 || rate.signum() == 0) continue;
             lines.add(new HashMap<>(Map.of(
                     "label", "Room " + segs.get(i).get("room_number") + " (" + segs.get(i).get("room_type") + ")",
-                    "nights", n, "rate", rate, "amount", rate.multiply(BigDecimal.valueOf(n)))));
+                    NIGHTS, n, "rate", rate, AMOUNT, rate.multiply(BigDecimal.valueOf(n)))));
         }
         return lines;
     }
@@ -267,8 +283,8 @@ public class AdmissionService {
                 LocalDateTime.now().plusDays(14), "Inpatient stay — admission #" + a.getId()));
         for (var i : items) { // bill_items trigger recalculates the bill total
             jdbc.update("INSERT INTO bill_items (bill_id, item_name, quantity, unit_price, amount) VALUES (?, ?, ?, ?, ?)",
-                    bill.getId(), i.get("label") + " · " + i.get("nights") + " night(s)", ((Long) i.get("nights")).intValue(),
-                    i.get("rate"), i.get("amount"));
+                    bill.getId(), i.get("label") + " · " + i.get(NIGHTS) + " night(s)", ((Long) i.get(NIGHTS)).intValue(),
+                    i.get("rate"), i.get(AMOUNT));
         }
         return bill.getId();
     }
@@ -278,15 +294,16 @@ public class AdmissionService {
     }
 
     private Admission active(Long id) {
-        Admission a = findById(id);
+        Admission a = load(id);
         if (a.getStatus() != AdmissionStatus.ADMITTED) throw new BadRequestException("This stay is closed");
         return a;
     }
 
+    /** Admin, the attending doctor, or — when the attending has no login — any doctor covering for them. */
     private void requireAttending(User actor, Admission a) {
         if (actor.getRole() == UserRole.ADMIN) return;
-        boolean attending = actor.getRole() == UserRole.DOCTOR && doctorRepo.findByUser_Id(actor.getId())
-                .map(d -> d.getId().equals(a.getDoctor().getId())).orElse(false);
+        boolean attending = actor.getRole() == UserRole.DOCTOR && (!a.getDoctor().hasLogin()
+                || doctorRepo.findByUser_Id(actor.getId()).map(d -> d.getId().equals(a.getDoctor().getId())).orElse(false));
         if (!attending) throw new AccessDeniedException("Only the attending doctor can discharge");
     }
 

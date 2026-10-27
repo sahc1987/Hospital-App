@@ -10,12 +10,14 @@ import org.mapstruct.MappingTarget;
 public interface DoctorMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "department", ignore = true)
+    @Mapping(target = "user", ignore = true) // linked via Users, never from the doctor form
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Doctor toEntity(DoctorRequest request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "department", ignore = true)
+    @Mapping(target = "user", ignore = true) // linked via Users, never from the doctor form
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntity(DoctorRequest request, @MappingTarget Doctor doctor);

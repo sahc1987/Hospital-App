@@ -51,6 +51,26 @@ class AppointmentRulesTest {
     }
 
     @Test
+    void anyDoctorCoversForADoctorWithoutLogin() {
+        User otherDoctor = User.builder().id(7L).username("dr_x").role(UserRole.DOCTOR).build();
+        when(doctors.findByUser_Id(7L)).thenReturn(Optional.of(Doctor.builder().id(2L).build()));
+        when(repo.saveAndFlush(any())).thenAnswer(i -> i.getArgument(0));
+        var start = new com.hms.dto.appointment.AppointmentRequest.StatusChange(IN_CONSULTATION, null);
+
+        Doctor noLogin = Doctor.builder().id(1L).name("Dr. NoLogin").build();       // user == null
+        var a1 = com.hms.entity.Appointment.builder().id(1L).doctor(noLogin).status(CHECKED_IN)
+                .appointmentDate(LocalDateTime.now()).build();
+        when(repo.findById(1L)).thenReturn(Optional.of(a1));
+        assertDoesNotThrow(() -> service.changeStatus(otherDoctor, 1L, start));
+
+        Doctor withLogin = Doctor.builder().id(3L).name("Dr. Linked").user(User.builder().id(99L).build()).build();
+        var a2 = com.hms.entity.Appointment.builder().id(2L).doctor(withLogin).status(CHECKED_IN)
+                .appointmentDate(LocalDateTime.now()).build();
+        when(repo.findById(2L)).thenReturn(Optional.of(a2));
+        assertThrows(AccessDeniedException.class, () -> service.changeStatus(otherDoctor, 2L, start));
+    }
+
+    @Test
     void bookingRespectsHoursGridAndConflicts() {
         when(doctors.findById(1L)).thenReturn(Optional.of(doc));
         when(patients.findById(5L)).thenReturn(Optional.of(Patient.builder().id(5L).build()));

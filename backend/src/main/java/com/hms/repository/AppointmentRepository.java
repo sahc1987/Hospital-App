@@ -25,8 +25,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long>,
 
     @EntityGraph(attributePaths = {"patient", "doctor"})
     Page<Appointment> findByPatientId(Long patientId, Pageable pageable);
-
-    Page<Appointment> findByDoctorId(Long doctorId, Pageable pageable);
     List<Appointment> findByStatus(AppointmentStatus status);
 
     @EntityGraph(attributePaths = {"patient", "doctor"})

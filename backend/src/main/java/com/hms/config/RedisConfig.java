@@ -25,7 +25,7 @@ import java.util.Map;
 public class RedisConfig {
 
     @Bean
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
+    RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
         template.setKeySerializer(new StringRedisSerializer());
@@ -37,7 +37,7 @@ public class RedisConfig {
     }
 
     @Bean
-    public CacheManager cacheManager(RedisConnectionFactory factory) {
+    CacheManager cacheManager(RedisConnectionFactory factory) {
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(5))
                 .disableCachingNullValues()
@@ -70,9 +70,16 @@ public class RedisConfig {
                 .allowIfSubType("java.math")
                 .allowIfSubType("java.time")
                 .build();
-        // EVERYTHING, not NON_FINAL: records (DashboardStats) are final, so NON_FINAL wrote no @class
-        // and every cache hit failed to deserialize -> 500
-        mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.EVERYTHING, JsonTypeInfo.As.PROPERTY);
+        // NON_FINAL plus records: records (DashboardStats) are final, so plain NON_FINAL wrote no @class and every
+        // cache hit failed to deserialize -> 500. (EVERYTHING would work but is deprecated; Jackson 2.x has no
+        // built-in "non-final and records" option.)
+        var typing = new ObjectMapper.DefaultTypeResolverBuilder(ObjectMapper.DefaultTyping.NON_FINAL, ptv) {
+            @Override
+            public boolean useForType(com.fasterxml.jackson.databind.JavaType t) {
+                return t.isRecordType() || super.useForType(t);
+            }
+        };
+        mapper.setDefaultTyping(typing.init(JsonTypeInfo.Id.CLASS, null).inclusion(JsonTypeInfo.As.PROPERTY));
         return mapper;
     }
 }

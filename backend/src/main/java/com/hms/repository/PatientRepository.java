@@ -14,7 +14,4 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
            "LOWER(p.phone) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
            "LOWER(p.email) LIKE LOWER(CONCAT('%', :q, '%'))")
     Page<Patient> search(@Param("q") String q, Pageable pageable);
-
-    @Query("SELECT COUNT(p) FROM Patient p WHERE EXTRACT(MONTH FROM p.createdAt) = :month AND EXTRACT(YEAR FROM p.createdAt) = :year")
-    long countByCreatedAtMonth(@Param("month") int month, @Param("year") int year);
 }

@@ -19,6 +19,15 @@ public class TokenBlacklistService {
         }
     }
 
+    /**
+     * Atomically blacklists the token; false if it was already blacklisted. One SET NX instead of
+     * check-then-set, so two concurrent refreshes with the same token can't both win.
+     */
+    public boolean claim(String jti, long ttlMs) {
+        return Boolean.TRUE.equals(redisTemplate.opsForValue()
+                .setIfAbsent(PREFIX + jti, "1", Math.max(ttlMs, 1), TimeUnit.MILLISECONDS));
+    }
+
     public boolean isBlacklisted(String jti) {
         return Boolean.TRUE.equals(redisTemplate.hasKey(PREFIX + jti));
     }

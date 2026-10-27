@@ -10,8 +10,10 @@ import { Modal } from '@/components/ui/Modal'
 import { Input, Select } from '@/components/ui/Input'
 import { Badge, StatusBadge } from '@/components/ui/Badge'
 import toast from 'react-hot-toast'
-import type { Patient } from '@/types'
+import type { Appointment, Patient } from '@/types'
 import { format, parseISO } from 'date-fns'
+
+const reasonText = (a: Appointment) => (a.status === 'CANCELLED' ? 'Cancelled: ' + (a.cancelReason ?? '') : a.reason ?? '—')
 
 /** Past and upcoming appointments for one patient, newest first. */
 function PatientAppointments({ patientId }: { readonly patientId: number }) {
@@ -33,7 +35,7 @@ function PatientAppointments({ patientId }: { readonly patientId: number }) {
           return <span className={d > now ? 'font-semibold text-ink' : 'text-ink-muted'}>{format(d, 'MMM d, yyyy · h:mm a')}</span>
         } },
         { key: 'doctor', header: 'Doctor', render: (r) => (r.doctor as { name?: string } | null)?.name ?? '—' },
-        { key: 'reason', header: 'Reason', render: (r) => String(r.status === 'CANCELLED' ? `Cancelled: ${r.cancelReason ?? ''}` : r.reason ?? '—') },
+        { key: 'reason', header: 'Reason', render: (r) => reasonText(r as unknown as Appointment) },
         { key: 'status', header: 'Status', render: (r) => <StatusBadge status={String(r.status)} /> },
       ]}
     />

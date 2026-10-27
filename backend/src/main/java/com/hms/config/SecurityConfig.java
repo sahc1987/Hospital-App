@@ -52,9 +52,10 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-                .csrf(AbstractHttpConfigurer::disable)
+                // CSRF off on purpose: auth is SameSite=Strict HttpOnly cookies, which browsers never send cross-site
+                .csrf(AbstractHttpConfigurer::disable) // NOSONAR java:S4502
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -74,8 +75,11 @@ public class SecurityConfig {
                 .build();
     }
 
-    // API prefix -> frontend route in role_permissions. Unlisted prefixes (auth, users, permissions)
-    // fall back to authenticated + their own @PreAuthorize.
+    /** Prefixes outside the matrix that guard themselves: auth (own endpoints), users (@PreAuthorize ADMIN),
+     *  permissions (read by every role to build the menu; writes are @PreAuthorize ADMIN). */
+    private static final java.util.Set<String> SELF_GUARDED = java.util.Set.of("auth", "users", "permissions");
+
+    // API prefix -> frontend route in role_permissions. Anything else is denied unless in SELF_GUARDED.
     private static final Map<String, String> API_ROUTES = Map.ofEntries(
             Map.entry("patients", "/patients"), Map.entry("appointments", "/appointments"),
             Map.entry("doctors", "/doctors"), Map.entry("departments", "/departments"),
@@ -93,13 +97,16 @@ public class SecurityConfig {
         }
         if (user.getRole() == UserRole.ADMIN) return new AuthorizationDecision(true);
         String[] parts = ctx.getRequest().getRequestURI().split("/");
-        String route = parts.length > 2 ? API_ROUTES.get(parts[2]) : null;
-        return new AuthorizationDecision(route == null
-                || rolePermissionRepository.existsById(new RolePermissionId(user.getRole().name(), route)));
+        String prefix = parts.length > 2 ? parts[2] : "";
+        String route = API_ROUTES.get(prefix);
+        // Deny by default: a new controller stays closed until it's mapped to a module (or listed as open)
+        if (route == null) return new AuthorizationDecision(SELF_GUARDED.contains(prefix));
+        return new AuthorizationDecision(
+                rolePermissionRepository.existsById(new RolePermissionId(user.getRole().name(), route)));
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(
                 Arrays.stream(allowedOrigins.split(",")).map(String::trim).toList());
@@ -114,20 +121,19 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(userDetailsService);
+    AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
+    PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
     }
 }

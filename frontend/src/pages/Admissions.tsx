@@ -13,7 +13,7 @@ import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/utils/cn'
 import type { Admission, AdmissionStatus, UserRole } from '@/types'
 
-const MOVERS: UserRole[] = ['ADMIN', 'RECEPTIONIST', 'NURSE', 'DOCTOR']
+const MOVERS = new Set<UserRole>(['ADMIN', 'RECEPTIONIST', 'NURSE', 'DOCTOR'])
 
 export default function Admissions() {
   const role = useAuthStore((s) => s.user?.role) as UserRole | undefined
@@ -31,7 +31,8 @@ export default function Admissions() {
   return (
     <div className="space-y-5 motion-safe:animate-slide-up">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-xl bg-surface p-1 shadow-card" role="group" aria-label="Stays">
+        <fieldset className="inline-flex rounded-xl bg-surface p-1 shadow-card">
+          <legend className="sr-only">Stays</legend>
           {([['ADMITTED', 'Current patients'], ['DISCHARGED', 'Discharged']] as const).map(([s, label]) => (
             <button key={s} onClick={() => setStatus(s)} aria-pressed={status === s}
               className={cn('rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
@@ -39,8 +40,8 @@ export default function Admissions() {
               {label}
             </button>
           ))}
-        </div>
-        {role && MOVERS.includes(role) && (
+        </fieldset>
+        {role && MOVERS.has(role) && (
           <Button onClick={() => setAdmitting(true)} icon={<Plus size={15} />}>Admit patient</Button>
         )}
       </div>

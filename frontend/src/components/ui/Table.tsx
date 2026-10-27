@@ -19,10 +19,12 @@ interface TableProps<T> {
   onPageChange?: (page: number) => void
 }
 
+const SKELETON_ROWS = [1, 2, 3, 4, 5]
+
 export function Table<T extends Record<string, unknown>>({
   columns, data, keyField, loading, emptyMessage = 'No data found.',
   totalPages, currentPage = 0, onPageChange,
-}: TableProps<T>) {
+}: Readonly<TableProps<T>>) {
   return (
     <div>
       <div className="overflow-x-auto rounded-xl border border-border">
@@ -40,24 +42,23 @@ export function Table<T extends Record<string, unknown>>({
             </tr>
           </thead>
           <tbody>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className="border-b border-border animate-pulse">
+            {loading && SKELETON_ROWS.map((n) => (
+                <tr key={n} className="border-b border-border animate-pulse">
                   {columns.map((col) => (
                     <td key={String(col.key)} className="px-4 py-3">
                       <div className="h-4 rounded bg-surface-card" />
                     </td>
                   ))}
                 </tr>
-              ))
-            ) : data.length === 0 ? (
+              ))}
+            {!loading && data.length === 0 && (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-12 text-center text-ink-muted">
                   {emptyMessage}
                 </td>
               </tr>
-            ) : (
-              data.map((row, i) => (
+            )}
+            {!loading && data.map((row, i) => (
                 <tr
                   key={keyField ? String(row[keyField]) : i}
                   className="border-b border-border last:border-0 hover:bg-surface-card/60 transition-colors"
@@ -70,8 +71,7 @@ export function Table<T extends Record<string, unknown>>({
                     </td>
                   ))}
                 </tr>
-              ))
-            )}
+              ))}
           </tbody>
         </table>
       </div>

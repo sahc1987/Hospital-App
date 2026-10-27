@@ -32,7 +32,7 @@ const iconBtn =
   'relative flex h-11 w-11 items-center justify-center rounded-2xl bg-surface shadow-card hover:shadow-card-hover transition ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2'
 
-function NotifIcon({ type }: { type: AppNotification['type'] }) {
+function NotifIcon({ type }: Readonly<{ type: AppNotification['type'] }>) {
   const cls = 'h-4 w-4 shrink-0'
   if (type === 'success') return <CheckCircle2 className={cn(cls, 'text-success')} />
   if (type === 'error')   return <XCircle      className={cn(cls, 'text-danger')} />

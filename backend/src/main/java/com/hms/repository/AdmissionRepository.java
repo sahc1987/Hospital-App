@@ -28,5 +28,4 @@ public interface AdmissionRepository extends JpaRepository<Admission, Long> {
     long countByRoomIdAndStatus(Long roomId, AdmissionStatus status);
     boolean existsByPatientIdAndStatus(Long patientId, AdmissionStatus status);
     long countByStatus(AdmissionStatus status);
-    boolean existsByRoomIdAndStatus(Long roomId, AdmissionStatus status);
 }

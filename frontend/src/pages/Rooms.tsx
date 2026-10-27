@@ -13,14 +13,14 @@ import { cn } from '@/utils/cn'
 import toast from 'react-hot-toast'
 import type { Admission, BoardRoom, Room, RoomType, UserRole } from '@/types'
 
-const MOVERS: UserRole[] = ['ADMIN', 'RECEPTIONIST', 'NURSE', 'DOCTOR']
+const MOVERS = new Set<UserRole>(['ADMIN', 'RECEPTIONIST', 'NURSE', 'DOCTOR'])
 const TYPES: RoomType[] = ['GENERAL', 'PRIVATE', 'ICU', 'EMERGENCY', 'OT', 'MATERNITY']
 
 /** Ward board: rooms by floor, each bed with its patient. Occupancy comes from admissions, never set by hand. */
 export default function Rooms() {
   const qc = useQueryClient()
   const role = useAuthStore((s) => s.user?.role) as UserRole | undefined
-  const canAdmit = !!role && MOVERS.includes(role)
+  const canAdmit = !!role && MOVERS.has(role)
   const canMaintain = role === 'ADMIN' || role === 'NURSE'
   const isAdmin = role === 'ADMIN'
   const [admit, setAdmit] = useState<AdmitPreset | null>(null)
@@ -62,7 +62,7 @@ export default function Rooms() {
       {isLoading ? <div className="card h-40 animate-pulse" /> : floors.map((floor) => (
         <section key={floor} aria-labelledby={`floor-${floor}`}>
           <h2 id={`floor-${floor}`} className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-muted">
-            {floor ? `Floor ${floor}` : 'No floor'}
+            {floor ? 'Floor ' + String(floor) : 'No floor'}
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {board.filter((b) => (b.room.floor ?? 0) === floor).map((b) => (
@@ -83,6 +83,11 @@ export default function Rooms() {
   )
 }
 
+function badgeTone(maintenance: boolean, free: number): string {
+  if (maintenance) return 'bg-warning-light text-warning-ink'
+  return free === 0 ? 'bg-coral-light text-danger-ink' : 'bg-mint-light text-success-ink'
+}
+
 function RoomCard({ b, canAdmit, canMaintain, isAdmin, onAdmit, onOpen, onMaintain, onEdit }: {
   readonly b: BoardRoom; readonly canAdmit: boolean; readonly canMaintain: boolean; readonly isAdmin: boolean
   readonly onAdmit: () => void; readonly onOpen: (admissionId: number) => void
@@ -98,8 +103,7 @@ function RoomCard({ b, canAdmit, canMaintain, isAdmin, onAdmit, onOpen, onMainta
           <p className="font-bold text-ink">{r.roomNumber}</p>
           <p className="text-xs text-ink-muted">{r.roomType.toLowerCase()} · ${r.dailyRate}/night</p>
         </div>
-        <span className={cn('rounded-md px-2 py-0.5 text-xs font-semibold',
-          maintenance ? 'bg-warning-light text-warning-ink' : free === 0 ? 'bg-coral-light text-danger-ink' : 'bg-mint-light text-success-ink')}>
+        <span className={cn('rounded-md px-2 py-0.5 text-xs font-semibold', badgeTone(maintenance, free))}>
           {maintenance ? 'Maintenance' : `${b.occupants.length}/${r.capacity} beds`}
         </span>
       </header>
@@ -123,8 +127,9 @@ function RoomCard({ b, canAdmit, canMaintain, isAdmin, onAdmit, onOpen, onMainta
             </li>
           )
         })}
-        {Array.from({ length: free }).map((_, i) => (
-          <li key={`free-${i}`}>
+        {/* free beds are numbered after the occupied ones */}
+        {Array.from({ length: free }, (_, i) => b.occupants.length + i + 1).map((bed) => (
+          <li key={`bed-${bed}`}>
             {canAdmit ? (
               <button onClick={onAdmit}
                 className="w-full rounded-lg border border-dashed border-primary-200 px-3 py-2 text-left text-sm text-primary-700 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">

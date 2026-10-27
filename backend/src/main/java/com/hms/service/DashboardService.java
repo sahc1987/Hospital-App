@@ -19,6 +19,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("java:S8688") // now() is hospital wall-clock time: the JVM zone *is* the hospital zone (TZ, see CLAUDE.md)
 public class DashboardService {
 
     private final PatientRepository patientRepo;
@@ -30,7 +31,6 @@ public class DashboardService {
     private final BillRepository billRepo;
     private final DoctorRepository doctorRepo;
     private final EmployeeRepository employeeRepo;
-    private final PayrollRepository payrollRepo;
     private final JdbcTemplate jdbc;
 
     private static final int TREND_DAYS = 7;
