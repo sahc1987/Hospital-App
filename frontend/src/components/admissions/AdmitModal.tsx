@@ -38,9 +38,9 @@ export function AdmitModal({ preset, onClose, onAdmitted }: {
       diagnosis: diagnosis || undefined, appointmentId: preset.appointmentId,
     }),
     onSuccess: (r) => {
-      qc.invalidateQueries({ queryKey: ['admissions'] })
-      qc.invalidateQueries({ queryKey: ['rooms'] })
-      qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      void qc.invalidateQueries({ queryKey: ['admissions'] })
+      void qc.invalidateQueries({ queryKey: ['rooms'] })
+      void qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
       toast.success('Patient admitted')
       onAdmitted?.(r.data.data.id)
       onClose()

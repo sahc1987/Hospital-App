@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/authStore'
 import { canAccess } from '@/utils/permissions'
 import { ClinicianIllustration } from '@/components/ui/ClinicianIllustration'
 import { cn } from '@/utils/cn'
+import { withDr } from '@/utils/names'
 import type { Appointment, UserRole } from '@/types'
 
 // Recharts needs literal colors; these mirror tailwind tokens coral / mint / primary / pink.
@@ -38,11 +39,6 @@ function shortName(full?: string) {
   if (!full) return ''
   const parts = full.split(' ')
   return parts[0].startsWith('Dr') ? `${parts[0]} ${parts[parts.length - 1]}` : parts[0]
-}
-
-function withDr(name?: string) {
-  if (!name) return '—'
-  return name.startsWith('Dr') ? name : 'Dr. ' + name
 }
 
 const signed = (n: number) => (n > 0 ? '+' : '') + n

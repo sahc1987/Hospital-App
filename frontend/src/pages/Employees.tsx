@@ -35,7 +35,7 @@ export default function Employees() {
     mutationFn: (d: Partial<Employee & { departmentId?: number }>) =>
       employeeApi.create({ ...d, departmentId: deptId ? Number(deptId) : undefined }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['employees'] })
+      void qc.invalidateQueries({ queryKey: ['employees'] })
       toast.success('Employee added')
       setShowModal(false)
       reset()

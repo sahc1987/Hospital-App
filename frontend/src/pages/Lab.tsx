@@ -6,6 +6,7 @@ import { Table } from '@/components/ui/Table'
 import { StatusBadge } from '@/components/ui/Badge'
 import type { LabTest } from '@/types'
 import { format } from 'date-fns'
+import { withDr } from '@/utils/names'
 
 export default function Lab() {
   const [page, setPage] = useState(0)
@@ -61,7 +62,7 @@ export default function Lab() {
               key: 'doctor', header: 'Ordered By',
               render: (row) => {
                 const t = row as unknown as LabTest
-                return t.doctor ? `Dr. ${t.doctor.name}` : '—'
+                return withDr(t.doctor?.name)
               },
             },
             {

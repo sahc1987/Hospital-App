@@ -51,9 +51,9 @@ export function StayPanel({ admission, onClose }: { readonly admission: Admissio
   const attending = role === 'ADMIN' || (role === 'DOCTOR' && (a.doctor?.hasLogin === false
     || (me?.linkedStaff?.type === 'DOCTOR' && me.linkedStaff.id === a.doctor?.id)))
   const refresh = () => {
-    qc.invalidateQueries({ queryKey: ['admissions'] })
-    qc.invalidateQueries({ queryKey: ['rooms'] })
-    qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+    void qc.invalidateQueries({ queryKey: ['admissions'] })
+    void qc.invalidateQueries({ queryKey: ['rooms'] })
+    void qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
   }
   const p = a.patient
   const age = p.dob ? differenceInYears(new Date(), parseISO(p.dob)) : null
@@ -237,7 +237,7 @@ function Notes({ id, rec, active }: { readonly id: number; readonly rec: StayRec
   const notes = rec.events.filter((e) => e.type === 'NOTE' || e.type === 'ADDENDUM').reverse()
   const add = useMutation({
     mutationFn: () => admissionApi.note(id, text.trim()),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admissions', 'record', id] }); setText(''); toast.success(active ? 'Note added' : 'Addendum added') },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['admissions', 'record', id] }); setText(''); toast.success(active ? 'Note added' : 'Addendum added') },
   })
   return (
     <div className="space-y-4">
@@ -274,7 +274,7 @@ function Vitals({ id, rec, active }: { readonly id: number; readonly rec: StayRe
   const save = useMutation({
     mutationFn: () => admissionApi.vitals(id, Object.fromEntries(
       Object.entries(form).filter(([, v]) => v !== '').map(([k, v]) => [k, Number(v)]))),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admissions', 'record', id] }); setForm({}); toast.success('Vitals recorded') },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['admissions', 'record', id] }); setForm({}); toast.success('Vitals recorded') },
   })
   const chart = rows.map((v) => ({ t: fmt(v.recorded_at), temp: v.temp_c, pulse: v.pulse, spo2: v.spo2 }))
 

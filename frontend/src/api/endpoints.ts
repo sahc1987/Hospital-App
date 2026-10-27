@@ -5,6 +5,7 @@ import type {
   LabTest, Bill, PharmacyItem, Employee, Payroll, DashboardStats, DashboardTrends, AuthUser, SystemUser,
   AppointmentStatus, AppointmentHistoryEntry, Visit, PastVisit, RxItem, StayRecord, BoardRoom, AdmissionStatus, UserRole,
 } from '@/types'
+import { DEFAULT_MATRIX, type PermissionMatrix } from '@/store/permissionsStore'
 
 export interface AppointmentFilters {
   page?: number
@@ -206,10 +207,28 @@ export const payrollApi = {
 }
 
 // Permissions matrix
+// The API speaks role → routes ({ DOCTOR: ['/', '/patients'] }); the app (permissionsStore, canAccess)
+// works in route → roles. Flip at this boundary: sending route → roles made the server store
+// role="/patients", route="ADMIN" and lock every non-admin out.
+type ByRole = Record<string, string[]>
+
+function flip(m: Record<string, string[]>): Record<string, string[]> {
+  const out: Record<string, string[]> = {}
+  for (const [k, vs] of Object.entries(m)) {
+    for (const v of vs) out[v] = [...(out[v] ?? []), k]
+  }
+  return out
+}
+
+// Every known route present, so a route granted to nobody reads as [] (denied), not missing (→ defaults)
+const byRoute = <R extends { data: ApiResponse<ByRole> }>(r: R) => ({
+  ...r,
+  data: { ...r.data, data: { ...Object.fromEntries(Object.keys(DEFAULT_MATRIX).map((k) => [k, []])), ...flip(r.data.data) } as PermissionMatrix },
+})
+
 export const permissionsApi = {
-  get: () => client.get<ApiResponse<Record<string, UserRole[]>>>('/permissions'),
-  update: (matrix: Record<string, UserRole[]>) =>
-    client.put<ApiResponse<Record<string, UserRole[]>>>('/permissions', matrix),
+  get: () => client.get<ApiResponse<ByRole>>('/permissions').then(byRoute),
+  update: (matrix: PermissionMatrix) => client.put<ApiResponse<ByRole>>('/permissions', flip(matrix)).then(byRoute),
 }
 
 // Users (ADMIN only)

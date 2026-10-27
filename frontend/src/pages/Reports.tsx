@@ -2,6 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { dashboardApi } from '@/api/endpoints'
 import { StatCard } from '@/components/ui/StatCard'
 import { Users, DollarSign, Stethoscope, UserCog } from 'lucide-react'
+
+// "$0", "$950", "$16.5K": a hand-rolled /1000 rendered "$0.0k" for an empty month
+const usdCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend, LineChart, Line
@@ -47,7 +50,7 @@ export default function Reports() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard dark  title="Total Patients"    value={stats?.totalPatients ?? '—'}     icon={<Users size={18} className="text-white" />} />
         <StatCard       title="Total Doctors"     value={stats?.totalDoctors ?? '—'}      icon={<Stethoscope size={18} />} accent />
-        <StatCard dark  title="Monthly Revenue"   value={`$${((stats?.monthlyRevenue ?? 0)/1000).toFixed(1)}k`} icon={<DollarSign size={18} className="text-white" />} />
+        <StatCard dark  title="Monthly Revenue"   value={usdCompact.format(stats?.monthlyRevenue ?? 0)} icon={<DollarSign size={18} className="text-white" />} />
         <StatCard       title="Total Employees"   value={stats?.totalEmployees ?? '—'}    icon={<UserCog size={18} />} />
       </div>
 

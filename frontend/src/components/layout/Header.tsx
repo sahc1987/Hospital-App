@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, Bell, Settings, CheckCheck, Trash2, Info, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react'
+import { Search, Bell, Settings, Menu, CheckCheck, Trash2, Info, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useNotificationsStore } from '@/store/notificationsStore'
@@ -40,7 +40,7 @@ function NotifIcon({ type }: Readonly<{ type: AppNotification['type'] }>) {
   return <Info className={cn(cls, 'text-primary')} />
 }
 
-export default function Header() {
+export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
   const location  = useLocation()
   const navigate  = useNavigate()
   const { user }  = useAuthStore()
@@ -82,17 +82,28 @@ export default function Header() {
 
   return (
     // Sits on the lavender canvas (no bar): floating search pill + square white icon buttons
-    <header className="flex items-center justify-between px-6 pt-6 pb-2 gap-4 relative">
+    <header className="flex items-center justify-between px-4 pt-4 md:px-6 md:pt-6 pb-2 gap-2 md:gap-4 relative">
+      {/* Phone: opens the nav drawer (the rail is hidden below md) */}
+      <button type="button" onClick={onMenu} className={cn(iconBtn, 'shrink-0 md:hidden')} aria-label="Open menu">
+        <Menu size={18} className="text-primary" aria-hidden="true" />
+      </button>
+
       {/* Page title */}
-      <div>
-        <h1 className="text-xl font-bold text-ink">{page.title}</h1>
-        {page.subtitle && <p className="text-xs text-ink-muted mt-0.5">{page.subtitle}</p>}
+      <div className="min-w-0">
+        <h1 className="truncate text-lg md:text-xl font-bold text-ink">{page.title}</h1>
+        {page.subtitle && <p className="hidden sm:block text-xs text-ink-muted mt-0.5">{page.subtitle}</p>}
       </div>
 
       {/* Search */}
       {/* Searches patients (name / phone / email) on the Patients page. Hidden for roles without it. */}
+      {/* Phone: no room for the field, so an icon goes to Patients, which has its own search box */}
+      {canSearch && (
+        <button type="button" onClick={() => navigate('/patients')} className={cn(iconBtn, 'ml-auto shrink-0 sm:hidden')} aria-label="Search patients">
+          <Search size={17} className="text-primary" aria-hidden="true" />
+        </button>
+      )}
       {canSearch ? (
-        <form role="search" onSubmit={submitSearch} className="relative flex-1 max-w-md">
+        <form role="search" onSubmit={submitSearch} className="relative hidden sm:block flex-1 max-w-md">
           <input
             type="search"
             value={query}
@@ -109,10 +120,10 @@ export default function Header() {
             <Search size={16} aria-hidden="true" />
           </button>
         </form>
-      ) : <div className="flex-1" />}
+      ) : <div className="hidden sm:block flex-1" />}
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className={cn('flex shrink-0 items-center gap-2', !canSearch && 'ml-auto sm:ml-0')}>
 
         {/* Notification bell */}
         <div ref={bellRef} className="relative">
@@ -131,7 +142,8 @@ export default function Header() {
           </button>
 
           {bellOpen && (
-            <div className="absolute right-0 top-14 z-50 w-80 rounded-card bg-surface shadow-card-hover overflow-hidden">
+            // Phone: pinned to the screen edges (a 320px panel anchored to the bell would overflow left)
+            <div className="fixed inset-x-4 top-20 sm:absolute sm:inset-x-auto sm:right-0 sm:top-14 z-50 sm:w-80 rounded-card bg-surface shadow-card-hover overflow-hidden">
               {/* Bell header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <div>
@@ -203,7 +215,8 @@ export default function Header() {
         </div>
 
         {/* Settings → profile */}
-        <button onClick={() => navigate('/profile')} className={iconBtn} aria-label="Account settings">
+        {/* Same target as the avatar; dropped on phones to save width */}
+        <button onClick={() => navigate('/profile')} className={cn(iconBtn, 'hidden sm:flex')} aria-label="Account settings">
           <Settings size={17} className="text-primary" aria-hidden="true" />
         </button>
 

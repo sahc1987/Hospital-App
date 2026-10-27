@@ -100,7 +100,7 @@ export default function AccessMatrix() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
             <ShieldCheck size={20} className="text-primary" />
@@ -111,7 +111,7 @@ export default function AccessMatrix() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
           {dirty && (
             <span className="text-xs font-medium text-yellow-400 bg-yellow-400/10 rounded-lg px-2.5 py-1.5 border border-yellow-400/20">
               Unsaved changes
@@ -149,7 +149,7 @@ export default function AccessMatrix() {
       </div>
 
       {/* Role summary cards */}
-      <div className="grid grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         {ROLES.map((role) => (
           <div key={role.id} className={cn('rounded-xl border p-3 text-center', role.bg)}>
             <p className={cn('text-sm font-semibold', role.color)}>{role.label}</p>
@@ -164,7 +164,8 @@ export default function AccessMatrix() {
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="border-b border-border bg-surface-alt">
-              <th className="px-4 py-3 text-left font-medium text-ink-subtle w-52">Module</th>
+              {/* sticky: the module name stays visible while the role columns scroll sideways on phones */}
+              <th className="sticky left-0 z-10 bg-surface-alt px-4 py-3 text-left font-medium text-ink-subtle w-52">Module</th>
               {ROLES.map((role) => (
                 <th key={role.id} className="px-3 py-3 text-center font-medium min-w-[90px]">
                   <span className={cn('inline-flex rounded-lg px-2 py-0.5 text-xs font-semibold border', role.bg, role.color)}>
@@ -177,8 +178,8 @@ export default function AccessMatrix() {
           <tbody className="divide-y divide-border">
             {MODULES.map(({ route, label, icon: Icon, locked }) => (
               <tr key={route} className="hover:bg-surface-alt/40 transition-colors">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2.5">
+                <td className="sticky left-0 z-10 bg-surface px-4 py-3">
+                  <div className="flex items-center gap-2.5 whitespace-nowrap">
                     <Icon size={14} className="text-ink-subtle shrink-0" />
                     <span className="text-ink font-medium">{label}</span>
                     {locked && (

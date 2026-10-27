@@ -33,7 +33,7 @@ export default function Pharmacy() {
   const createMutation = useMutation({
     mutationFn: (d: Partial<PharmacyItem>) => pharmacyApi.create(d),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['pharmacy'] })
+      void qc.invalidateQueries({ queryKey: ['pharmacy'] })
       toast.success('Item added')
       setShowModal(false)
       reset()
@@ -43,7 +43,7 @@ export default function Pharmacy() {
   const restockMutation = useMutation({
     mutationFn: ({ id, qty }: { id: number; qty: number }) => pharmacyApi.restock(id, qty),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['pharmacy'] })
+      void qc.invalidateQueries({ queryKey: ['pharmacy'] })
       toast.success('Stock updated')
       setRestockItem(null)
       setRestockQty('')

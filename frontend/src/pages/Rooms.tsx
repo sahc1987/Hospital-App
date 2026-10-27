@@ -34,7 +34,7 @@ export default function Rooms() {
   })
   const maintain = useMutation({
     mutationFn: (r: Room) => roomApi.updateStatus(r.id, r.status === 'MAINTENANCE' ? 'AVAILABLE' : 'MAINTENANCE'),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['rooms'] }); toast.success('Room updated') },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['rooms'] }); toast.success('Room updated') },
   })
   async function openStay(admissionId: number) {
     setStay((await admissionApi.get(admissionId)).data.data)
@@ -165,7 +165,7 @@ function RoomForm({ room, onClose }: { readonly room: Partial<Room>; readonly on
       const body = { ...f, floor: f.floor === '' ? undefined : Number(f.floor), capacity: Number(f.capacity), dailyRate: Number(f.dailyRate) }
       return room.id ? roomApi.update(room.id, body) : roomApi.create(body)
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['rooms'] }); toast.success(room.id ? 'Room updated' : 'Room added'); onClose() },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['rooms'] }); toast.success(room.id ? 'Room updated' : 'Room added'); onClose() },
   })
   return (
     <Modal open onClose={onClose} title={room.id ? `Edit room ${room.roomNumber}` : 'Add room'} size="md">

@@ -63,7 +63,7 @@ export default function Patients() {
     mutationFn: (d: Partial<Patient>) =>
       editing ? patientApi.update(editing.id, d) : patientApi.create(d),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['patients'] })
+      void qc.invalidateQueries({ queryKey: ['patients'] })
       toast.success(editing ? 'Patient updated' : 'Patient created')
       setShowModal(false)
       setEditing(null)
@@ -75,7 +75,7 @@ export default function Patients() {
   const deleteMutation = useMutation({
     mutationFn: patientApi.delete,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['patients'] })
+      void qc.invalidateQueries({ queryKey: ['patients'] })
       toast.success('Patient deleted')
     },
   })

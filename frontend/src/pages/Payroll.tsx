@@ -19,7 +19,7 @@ export default function PayrollPage() {
 
   const markPaidMutation = useMutation({
     mutationFn: payrollApi.markPaid,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['payroll'] }); toast.success('Marked as paid') },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['payroll'] }); toast.success('Marked as paid') },
   })
 
   const pageData = data?.data?.data

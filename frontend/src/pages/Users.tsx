@@ -5,12 +5,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
   Plus, Search, Pencil, Trash2, ToggleLeft, ToggleRight,
-  KeyRound, X, Stethoscope, UserCog, Link2, Link2Off,
+  KeyRound, Stethoscope, UserCog, Link2, Link2Off,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { userApi, doctorApi, employeeApi, departmentApi } from '@/api/endpoints'
 import type { SystemUser, UserRole, Department } from '@/types'
 import { cn } from '@/utils/cn'
+import { Modal } from '@/components/ui/Modal'
 
 const ROLE_COLORS: Record<UserRole, string> = {
   ADMIN:        'bg-red-500/15 text-red-400',
@@ -99,7 +100,7 @@ export default function Users() {
     mutationFn: (d: CreateForm) => userApi.create(d),
     onSuccess: () => {
       toast.success('User created')
-      qc.invalidateQueries({ queryKey: ['users'] })
+      void qc.invalidateQueries({ queryKey: ['users'] })
       setModal(null)
       createForm.reset()
     },
@@ -111,7 +112,7 @@ export default function Users() {
       userApi.update(id, { ...data, password: data.password || undefined }),
     onSuccess: () => {
       toast.success('User updated')
-      qc.invalidateQueries({ queryKey: ['users'] })
+      void qc.invalidateQueries({ queryKey: ['users'] })
       setModal(null)
       setEditing(null)
     },
@@ -120,7 +121,7 @@ export default function Users() {
 
   const toggleMutation = useMutation({
     mutationFn: (id: number) => userApi.toggleActive(id),
-    onSuccess: () => { toast.success('Status toggled'); qc.invalidateQueries({ queryKey: ['users'] }) },
+    onSuccess: () => { toast.success('Status toggled'); void qc.invalidateQueries({ queryKey: ['users'] }) },
     onError: () => toast.error('Failed to toggle status'),
   })
 
@@ -128,7 +129,7 @@ export default function Users() {
     mutationFn: (id: number) => userApi.delete(id),
     onSuccess: () => {
       toast.success('User deleted')
-      qc.invalidateQueries({ queryKey: ['users'] })
+      void qc.invalidateQueries({ queryKey: ['users'] })
       setDeleteTarget(null)
     },
     onError: () => toast.error('Failed to delete user'),
@@ -141,7 +142,7 @@ export default function Users() {
       setEditing(res.data.data)
       setLinkType('')
       setLinkStaffId('')
-      qc.invalidateQueries({ queryKey: ['users'] })
+      void qc.invalidateQueries({ queryKey: ['users'] })
       toast.success('Staff profile linked')
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Failed to link staff profile'),
@@ -151,7 +152,7 @@ export default function Users() {
     mutationFn: (id: number) => userApi.unlinkStaff(id),
     onSuccess: (res) => {
       setEditing(res.data.data)
-      qc.invalidateQueries({ queryKey: ['users'] })
+      void qc.invalidateQueries({ queryKey: ['users'] })
       toast.success('Staff profile unlinked')
     },
     onError: () => toast.error('Failed to unlink staff profile'),
@@ -191,7 +192,7 @@ export default function Users() {
         </div>
         <button
           onClick={() => { createForm.reset({ hireDate: new Date().toISOString().split('T')[0] }); setModal('create') }}
-          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 transition-colors"
+          className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 transition-colors"
         >
           <Plus size={16} />
           New User
@@ -236,17 +237,8 @@ export default function Users() {
 
       {/* ── Create / Edit Modal ────────────────────────────────────── */}
       {(modal === 'create' || modal === 'edit') && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-ink">
-                {modal === 'create' ? 'Create User' : 'Edit User'}
-              </h2>
-              <button onClick={() => { setModal(null); setEditing(null) }} className="text-ink-subtle hover:text-ink">
-                <X size={18} />
-              </button>
-            </div>
-
+        <Modal open onClose={() => { setModal(null); setEditing(null) }}
+          title={modal === 'create' ? 'Create User' : 'Edit User'} size="md">
             {modal === 'create' ? (
               <form onSubmit={createForm.handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
                 <UserFormFields form={createForm} isCreate departments={departments} />
@@ -344,26 +336,24 @@ export default function Users() {
                 </div>
               </>
             )}
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* ── Delete Confirm ─────────────────────────────────────────── */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-surface p-6 shadow-xl">
-            <h2 className="mb-2 text-lg font-semibold text-ink">Delete User</h2>
+        <Modal open onClose={() => setDeleteTarget(null)} title="Delete User" size="sm">
             <p className="mb-6 text-sm text-ink-subtle">
               Are you sure you want to delete{' '}
               <strong className="text-ink">{deleteTarget.fullName}</strong>?
               This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setDeleteTarget(null)}
+              <button type="button" onClick={() => setDeleteTarget(null)}
                 className="rounded-xl border border-border px-4 py-2 text-sm text-ink-subtle hover:bg-surface-alt">
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={() => deleteMutation.mutate(deleteTarget.id)}
                 disabled={deleteMutation.isPending}
                 className="rounded-xl bg-danger px-4 py-2 text-sm font-medium text-white hover:bg-danger/90 disabled:opacity-60"
@@ -371,8 +361,7 @@ export default function Users() {
                 {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   )
@@ -390,7 +379,7 @@ function UsersTable({ users, loading, onToggle, onEdit, onDelete }: RowActions &
     body = <div className="flex h-40 items-center justify-center text-sm text-ink-subtle">No users found</div>
   } else {
     body = (
-      <table className="w-full text-sm">
+      <table className="w-full whitespace-nowrap text-sm">
         <thead>
           <tr className="border-b border-border bg-surface-alt">
             <th className="px-4 py-3 text-left font-medium text-ink-subtle">User</th>

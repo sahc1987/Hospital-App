@@ -57,8 +57,8 @@ export function ConsultationPanel({ appt, canDocument, onFollowUp, onAdmit, onDo
   const start = useMutation({
     mutationFn: () => appointmentApi.changeStatus(appt.id, 'IN_CONSULTATION'),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['appointments'] })
-      qc.invalidateQueries({ queryKey: ['today-appointments'] })
+      void qc.invalidateQueries({ queryKey: ['appointments'] })
+      void qc.invalidateQueries({ queryKey: ['today-appointments'] })
       toast.success('Consultation started')
       onDone()
     },
@@ -124,14 +124,14 @@ function Documentation({ appt, visit, editable, inRoom, diagnosis, setDiagnosis,
   const saveNote = () => appointmentApi.saveVisit(appt.id, { diagnosis, visitNote: note })
   const save = useMutation({
     mutationFn: saveNote,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['appointments', 'visit', appt.id] }); toast.success('Note saved') },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['appointments', 'visit', appt.id] }); toast.success('Note saved') },
   })
   const complete = useMutation({
     mutationFn: async () => { await saveNote(); return appointmentApi.changeStatus(appt.id, 'COMPLETED') },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['appointments'] })
-      qc.invalidateQueries({ queryKey: ['today-appointments'] })
-      qc.invalidateQueries({ queryKey: ['bills'] })
+      void qc.invalidateQueries({ queryKey: ['appointments'] })
+      void qc.invalidateQueries({ queryKey: ['today-appointments'] })
+      void qc.invalidateQueries({ queryKey: ['bills'] })
       toast.success('Visit completed')
       onDone()
     },
@@ -191,7 +191,7 @@ function Prescription({ appt, visit, rows, setRows, editable }: {
   const qc = useQueryClient()
   const saveRx = useMutation({
     mutationFn: () => appointmentApi.savePrescription(appt.id, rows.filter((r) => r.medication.trim()).map(stripKey)),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['appointments', 'visit', appt.id] }); toast.success('Prescription saved') },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['appointments', 'visit', appt.id] }); toast.success('Prescription saved') },
   })
   const update = (key: number, patch: Partial<RxItem>) => setRows(rows.map((x) => (x.key === key ? { ...x, ...patch } : x)))
   const filled = rows.filter((r) => r.medication)
@@ -361,8 +361,8 @@ function LabOrder({ appt }: { readonly appt: Appointment }) {
     mutationFn: () => labApi.create({ patientId: appt.patient.id, doctorId: appt.doctor.id, testName: test.trim(),
       notes: notes || undefined, appointmentId: appt.id }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['lab'] })
-      qc.invalidateQueries({ queryKey: ['appointments', 'visit', appt.id] })
+      void qc.invalidateQueries({ queryKey: ['lab'] })
+      void qc.invalidateQueries({ queryKey: ['appointments', 'visit', appt.id] })
       toast.success('Lab test ordered')
       setTest(''); setNotes('')
     },
@@ -390,7 +390,7 @@ function Addenda({ apptId, entries, canAdd }: {
   const [text, setText] = useState('')
   const add = useMutation({
     mutationFn: () => appointmentApi.addendum(apptId, text.trim()),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['appointments', 'visit', apptId] }); toast.success('Addendum added'); setText('') },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['appointments', 'visit', apptId] }); toast.success('Addendum added'); setText('') },
   })
   return (
     <section aria-labelledby="add-title">

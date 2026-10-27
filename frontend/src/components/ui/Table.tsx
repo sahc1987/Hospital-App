@@ -34,7 +34,7 @@ export function Table<T extends Record<string, unknown>>({
               {columns.map((col) => (
                 <th
                   key={String(col.key)}
-                  className={cn('table-header px-4 py-3 text-left', col.className)}
+                  className={cn('table-header whitespace-nowrap px-4 py-3 text-left', col.className)}
                 >
                   {col.header}
                 </th>
@@ -64,7 +64,8 @@ export function Table<T extends Record<string, unknown>>({
                   className="border-b border-border last:border-0 hover:bg-surface-card/60 transition-colors"
                 >
                   {columns.map((col) => (
-                    <td key={String(col.key)} className={cn('px-4 py-3 text-ink', col.className)}>
+                    // nowrap: on phones the table scrolls sideways instead of breaking every cell into 2–3 lines
+                    <td key={String(col.key)} className={cn('whitespace-nowrap px-4 py-3 text-ink', col.className)}>
                       {col.render
                         ? col.render(row)
                         : String(row[col.key as keyof T] ?? '—')}

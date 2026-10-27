@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Input, Select } from '@/components/ui/Input'
 import toast from 'react-hot-toast'
 import type { Doctor } from '@/types'
+import { withDr } from '@/utils/names'
 
 const WEEK = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 type DoctorForm = Partial<Doctor> & { days?: string[] }
@@ -42,7 +43,7 @@ export default function Doctors() {
       return editing ? doctorApi.update(editing.id, body, department) : doctorApi.create(body, department)
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['doctors'] })
+      void qc.invalidateQueries({ queryKey: ['doctors'] })
       toast.success(editing ? 'Doctor updated' : 'Doctor added')
       setShowModal(false)
       setEditing(null)
@@ -54,7 +55,7 @@ export default function Doctors() {
 
   const deleteMutation = useMutation({
     mutationFn: doctorApi.delete,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['doctors'] }); toast.success('Doctor removed') },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['doctors'] }); toast.success('Doctor removed') },
   })
 
   function openEdit(d: Doctor) {
@@ -116,7 +117,7 @@ export default function Doctors() {
                       {d.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-medium">Dr. {d.name}</p>
+                      <p className="font-medium">{withDr(d.name)}</p>
                       <p className="text-xs text-ink-muted">{d.specialization}</p>
                     </div>
                   </div>

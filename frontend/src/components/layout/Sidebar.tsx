@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarDays, Stethoscope, Building2,
   BedDouble, FlaskConical, Pill, DollarSign, UserCog, BarChart3,
-  LogOut, HeartPulse, KeyRound, ShieldCheck, PanelLeftOpen, PanelLeftClose,
+  LogOut, HeartPulse, KeyRound, ShieldCheck, PanelLeftOpen, PanelLeftClose, X,
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { useAuthStore } from '@/store/authStore'
@@ -63,11 +63,34 @@ function readExpanded(): boolean {
 
 type Tip = { label: string; top: number; left: number }
 
-export default function Sidebar() {
+type RailButtonProps = Readonly<{ wide: boolean; onClick: () => void; icon: typeof X; label: string; expanded?: boolean }>
+
+function RailButton({ wide, onClick, icon: Icon, label, expanded }: RailButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={expanded}
+      aria-controls={expanded === undefined ? undefined : 'sidebar-nav'}
+      className={cn(
+        'mb-2 flex items-center gap-3 rounded-xl text-xs font-medium hover:bg-white/10 transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white',
+        wide ? 'mx-3 px-3 py-2' : 'mx-auto h-9 w-9 justify-center',
+      )}
+    >
+      <Icon size={16} aria-hidden="true" />
+      <span className={wide ? '' : 'sr-only'}>{label}</span>
+    </button>
+  )
+}
+
+/** `mobile`: rendered inside the phone drawer: always shows labels, and any navigation closes it. */
+export default function Sidebar({ mobile = false, onClose }: Readonly<{ mobile?: boolean; onClose?: () => void }>) {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const role = user?.role as UserRole | undefined
   const [expanded, setExpanded] = useState(readExpanded)
+  const wide = mobile || expanded
 
   // One shared tooltip for the collapsed rail. position:fixed escapes the nav's overflow clipping.
   // WCAG 1.4.13: hoverable (no gap: padding sits inside the tip), dismissible (Escape), persistent.
@@ -89,7 +112,7 @@ export default function Sidebar() {
   }
 
   function showTip(label: string, el: HTMLElement) {
-    if (expanded) return
+    if (wide) return
     window.clearTimeout(hideTimer.current)
     const r = el.getBoundingClientRect()
     setTip({ label, top: r.top + r.height / 2, left: r.right })
@@ -112,17 +135,18 @@ export default function Sidebar() {
   return (
     <aside
       className={cn(
-        'm-4 mr-0 flex flex-col rounded-[1.75rem] bg-primary-600 text-white shadow-primary flex-shrink-0',
+        'flex flex-col rounded-[1.75rem] bg-primary-600 text-white shadow-primary flex-shrink-0',
         'motion-safe:transition-[width] motion-safe:duration-300',
-        expanded ? 'w-64' : 'w-[5.25rem]',
+        mobile ? 'm-3 w-64' : 'm-4 mr-0',
+        !mobile && (expanded ? 'w-64' : 'w-[5.25rem]'),
       )}
     >
       {/* Brand */}
-      <div className={cn('flex items-center gap-3 pt-6 pb-4', expanded ? 'px-5' : 'justify-center')}>
+      <div className={cn('flex items-center gap-3 pt-6 pb-4', wide ? 'px-5' : 'justify-center')}>
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
           <HeartPulse size={22} aria-hidden="true" />
         </div>
-        {expanded && (
+        {wide && (
           <div className="leading-tight">
             <p className="text-lg font-bold">HMS</p>
             <p className="text-[11px] text-white/85">Hospital System</p>
@@ -130,31 +154,22 @@ export default function Sidebar() {
         )}
       </div>
 
-      <button
-        onClick={toggle}
-        aria-expanded={expanded}
-        aria-controls="sidebar-nav"
-        className={cn(
-          'mb-2 flex items-center gap-3 rounded-xl text-xs font-medium hover:bg-white/10 transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white',
-          expanded ? 'mx-3 px-3 py-2' : 'mx-auto h-9 w-9 justify-center',
-        )}
-      >
-        {expanded ? <PanelLeftClose size={16} aria-hidden="true" /> : <PanelLeftOpen size={16} aria-hidden="true" />}
-        <span className={expanded ? '' : 'sr-only'}>{expanded ? 'Collapse menu' : 'Expand menu'}</span>
-      </button>
+      {mobile
+        ? <RailButton wide onClick={() => onClose?.()} icon={X} label="Close menu" />
+        : <RailButton wide={expanded} onClick={toggle} icon={expanded ? PanelLeftClose : PanelLeftOpen}
+            label={expanded ? 'Collapse menu' : 'Expand menu'} expanded={expanded} />}
 
       <nav id="sidebar-nav" aria-label="Main" className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4">
         {visibleGroups.map((group, gi) => (
           <div key={group.label} className={gi > 0 ? 'mt-3' : ''}>
-            {expanded ? (
+            {wide ? (
               <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/85">
                 {group.label}
               </p>
             ) : (
               gi > 0 && <div className="mx-4 mb-3 h-px bg-white/20" aria-hidden="true" />
             )}
-            <ul className="space-y-1" aria-label={expanded ? undefined : group.label}>
+            <ul className="space-y-1" aria-label={wide ? undefined : group.label}>
               {group.items.map(({ to, icon: Icon, label }) => (
                 <li key={to}>
                   <NavLink
@@ -167,13 +182,13 @@ export default function Sidebar() {
                     className={({ isActive }) => cn(
                       'flex items-center gap-3 rounded-xl text-sm font-medium transition-colors',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white',
-                      expanded ? 'px-3 py-2.5' : 'mx-auto h-11 w-11 justify-center',
+                      wide ? 'px-3 py-2.5' : 'mx-auto h-11 w-11 justify-center',
                       isActive ? 'bg-white text-primary-700 shadow-sm' : 'text-white hover:bg-white/10',
                     )}
                   >
                     <Icon size={18} aria-hidden="true" />
                     {/* Always in the a11y tree; visually shown only when expanded */}
-                    <span className={expanded ? 'flex-1 truncate' : 'sr-only'}>{label}</span>
+                    <span className={wide ? 'flex-1 truncate' : 'sr-only'}>{label}</span>
                   </NavLink>
                 </li>
               ))}
@@ -183,19 +198,19 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer: profile + logout (always visible — it used to be hover-only) */}
-      <div className={cn('flex gap-2 border-t border-white/15 p-3', expanded ? 'items-center' : 'flex-col items-center')}>
+      <div className={cn('flex gap-2 border-t border-white/15 p-3', wide ? 'items-center' : 'flex-col items-center')}>
         <button
           onClick={() => navigate('/profile')}
           className={cn(
             'flex min-w-0 items-center gap-3 rounded-xl p-1.5 hover:bg-white/10 transition-colors text-left',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white',
-            expanded && 'flex-1',
+            wide && 'flex-1',
           )}
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-primary-700 font-semibold text-sm" aria-hidden="true">
             {user?.fullName?.charAt(0) ?? 'U'}
           </span>
-          <span className={expanded ? 'min-w-0' : 'sr-only'}>
+          <span className={wide ? 'min-w-0' : 'sr-only'}>
             <span className="block text-sm font-medium truncate">{user?.fullName ?? user?.username}</span>
             <span className="block text-[11px] text-white/85 capitalize">{user?.role?.toLowerCase().replace('_', ' ')}</span>
             <span className="sr-only">, open profile</span>
@@ -213,7 +228,7 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {tip && !expanded && (
+      {tip && !wide && (
         // aria-hidden: duplicates the link's own (sr-only) label
         <div
           aria-hidden="true"

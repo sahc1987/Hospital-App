@@ -26,7 +26,7 @@ export default function Departments() {
     mutationFn: (d: Partial<Department>) =>
       editing ? departmentApi.update(editing.id, d) : departmentApi.create(d),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['departments'] })
+      void qc.invalidateQueries({ queryKey: ['departments'] })
       toast.success(editing ? 'Department updated' : 'Department created')
       setShowModal(false)
       setEditing(null)
@@ -37,7 +37,7 @@ export default function Departments() {
 
   const deleteMutation = useMutation({
     mutationFn: departmentApi.delete,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['departments'] }); toast.success('Department deleted') },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['departments'] }); toast.success('Department deleted') },
   })
 
   const pageData = data?.data?.data

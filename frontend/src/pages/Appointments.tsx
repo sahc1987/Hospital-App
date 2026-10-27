@@ -99,8 +99,8 @@ export default function Appointments() {
     mutationFn: ({ a, to, note }: { a: Appointment; to: AppointmentStatus; note?: string }) =>
       appointmentApi.changeStatus(a.id, to, note),
     onSuccess: (_r, v) => {
-      qc.invalidateQueries({ queryKey: ['appointments'] })
-      qc.invalidateQueries({ queryKey: ['today-appointments'] })
+      void qc.invalidateQueries({ queryKey: ['appointments'] })
+      void qc.invalidateQueries({ queryKey: ['today-appointments'] })
       toast.success(`Marked ${pretty(v.to).toLowerCase()}`)
       setCancelling(null)
     },
@@ -462,8 +462,8 @@ function BookingModal({ state, doctors, lockDoctor, onClose }: {
       ? appointmentApi.update(appt.id, { appointmentDate: slot })
       : appointmentApi.create(Number(patientId), Number(doctorId), slot, reason || undefined),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['appointments'] })
-      qc.invalidateQueries({ queryKey: ['today-appointments'] })
+      void qc.invalidateQueries({ queryKey: ['appointments'] })
+      void qc.invalidateQueries({ queryKey: ['today-appointments'] })
       toast.success(appt ? 'Appointment rescheduled' : 'Appointment booked')
       onClose()
     },
@@ -571,7 +571,7 @@ function DetailsPanel({ appt, editable, onSaved }: {
   })
   const save = useMutation({
     mutationFn: () => appointmentApi.update(appt.id, { reason, notes }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['appointments'] }); toast.success('Saved'); onSaved() },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['appointments'] }); toast.success('Saved'); onSaved() },
   })
   const start = parseISO(appt.appointmentDate)
 
