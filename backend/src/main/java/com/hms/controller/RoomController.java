@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -40,19 +41,28 @@ public class RoomController {
         return ResponseEntity.ok(ApiResponse.ok(service.getStats()));
     }
 
+    @GetMapping("/board")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> board() {
+        return ResponseEntity.ok(ApiResponse.ok(service.board()));
+    }
+
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Room>> create(@Valid @RequestBody RoomRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("Room created", service.create(request)));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Room>> update(
             @PathVariable Long id, @Valid @RequestBody RoomRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Room updated", service.update(id, request)));
     }
 
+    // Maintenance on/off only (see RoomService.updateStatus)
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN','NURSE')")
     public ResponseEntity<ApiResponse<Room>> updateStatus(
             @PathVariable Long id, @RequestParam RoomStatus status) {
         return ResponseEntity.ok(ApiResponse.ok("Status updated", service.updateStatus(id, status)));

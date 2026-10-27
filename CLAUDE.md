@@ -87,6 +87,16 @@ The frontend fetches the matrix from `GET /api/permissions` in `DashboardLayout`
   - **Billing:** completing a visit creates a PENDING bill when `doctors.consultation_fee` is greater than 0.
   - UI: `components/appointments/ConsultationPanel.tsx`.
 
+### Admissions (V9)
+- **Room status:** `rooms.capacity` is the number of beds. Room status is **derived** by the `trg_admission_room_guard` and `trg_admission_room_sync` triggers: OCCUPIED when full, otherwise AVAILABLE.
+  - MAINTENANCE is the only manual state, and it can only be set on an empty room.
+  - Never set OCCUPIED/AVAILABLE from Java on an admission write path, because a stale `Room` entity save would overwrite the trigger.
+  - The guard raises `ROOM_FULL`/`ROOM_UNAVAILABLE`; `AdmissionService.save` maps those to 400s.
+- **One active stay:** a partial unique index allows one active admission per patient.
+- **Timeline:** `admission_events` (ADMITTED/TRANSFER/DISCHARGED/NOTE/ADDENDUM) is the stay timeline. Its ADMITTED and TRANSFER rows are also the source for per-room charges (`AdmissionService.charges`; at least one night per stay).
+- **Clinical data:** vitals and the medication administration record live in plain tables accessed through JdbcTemplate. `GET /admissions/{id}/record` drops clinical fields for non-clinical roles, and the discharge summary fields are `@JsonIgnore` on the entity.
+- **Gotcha:** every repository method that feeds a JSON response needs an `@EntityGraph` for the relations it shows (including `findById`). Otherwise Hibernate6Module serializes lazy relations as null, and the UI crashes on `patient.dob`.
+
 ### Frontend conventions
 - `src/api/endpoints.ts` holds one typed function per backend call, built on the shared axios `client`.
 - Server state uses TanStack Query in the pages. Forms use react-hook-form with zod schemas.

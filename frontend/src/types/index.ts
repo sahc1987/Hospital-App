@@ -110,6 +110,7 @@ export interface Room {
   floor?: number
   status: RoomStatus
   dailyRate: number
+  capacity: number  // beds; 1 = single-patient room
 }
 
 export interface Admission {
@@ -121,6 +122,62 @@ export interface Admission {
   dischargeDate?: string
   status: AdmissionStatus
   diagnosis?: string
+  appointmentId?: number
+  billId?: number
+}
+
+export interface AdmissionEvent {
+  id: number
+  type: 'ADMITTED' | 'TRANSFER' | 'DISCHARGED' | 'NOTE' | 'ADDENDUM'
+  note: string | null
+  author: string
+  created_at: string
+  from_room: string | null
+  to_room: string | null
+}
+
+export interface VitalsRow {
+  id: number
+  recorded_at: string
+  temp_c: number | null
+  systolic: number | null
+  diastolic: number | null
+  pulse: number | null
+  resp_rate: number | null
+  spo2: number | null
+  pain: number | null
+  author: string
+}
+
+export interface MedOrder {
+  id: number
+  medication: string
+  dosage: string | null
+  route: string | null
+  frequency: string | null
+  instructions: string | null
+  ordered_by: string
+  ordered_at: string
+  stopped_by: string | null
+  stopped_at: string | null
+  administrations: { status: 'GIVEN' | 'HELD' | 'REFUSED'; note: string | null; given_by: string; given_at: string }[]
+}
+
+/** GET /admissions/{id}/record — clinical fields only present for ADMIN/DOCTOR/NURSE. */
+export interface StayRecord {
+  events: AdmissionEvent[]
+  losDays: number
+  accruedCost: number
+  finalDiagnosis?: string | null
+  dischargeSummary?: string | null
+  dischargeInstructions?: string | null
+  vitals?: VitalsRow[]
+  medications?: MedOrder[]
+}
+
+export interface BoardRoom {
+  room: Room
+  occupants: { admission_id: number; patient_id: number; patient: string; doctor: string; admission_date: string; alerts: boolean }[]
 }
 
 export interface LabTest {

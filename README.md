@@ -51,8 +51,9 @@ A full hospital back office, built around the people who use it every day:
 | 👤 **Patients** | Register patients with date of birth, gender, contact details, address, blood group, allergies, and chronic conditions. Search from the header or the list, and open any patient's appointment history. |
 | 🩺 **Doctors and departments** | Keep doctors with their specialization, license number, department, working hours, slot length, and consultation fee. Departments group the doctors. |
 | 📅 **Appointments** | Book only free slots inside a doctor's working hours, in a list or a weekly calendar. Filter by date, doctor, patient, and status, and reschedule or cancel with a reason. Every change is logged with who made it and when. |
+| 🛏️ **Inpatient care** | A ward board of every bed. Admit, transfer, and discharge with a summary that bills the stay. Progress notes, vitals with trends, and a medication administration record. |
 | 🩻 **Consultations** | The doctor opens the visit next to the patient's previous visits, alerts, and lab results. They document it, prescribe and print, order lab tests, and book a follow-up. The note locks when the visit is completed. |
-| 🛏️ **Admissions and rooms** | Admit a patient to an available room and discharge them later. Rooms are general, private, ICU, emergency, OT, or maternity, and their status updates on its own. |
+| 🛏️ **Admissions and rooms** | Rooms are general, private, ICU, emergency, OT, or maternity, each with a number of beds and a nightly rate. Occupancy updates on its own from the admissions. |
 | 🔬 **Lab** | Order tests (also from inside a visit, linked to it), move them through collected, in progress, and completed, and record one result per test. |
 | 💊 **Pharmacy** | Keep the medication catalog with prices and reorder levels, see what's running low, and restock. |
 | 💳 **Billing** | Create itemized bills for a patient and record full or partial payments. The bill's status follows the money. Completing a visit opens a pending bill for the doctor's consultation fee, if one is set. |
@@ -144,16 +145,27 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    R1[Room<br/>Available] -->|Patient admitted| R2[Room<br/>Occupied]
-    R2 -->|Patient discharged<br/>or transferred| R1
-    R1 -->|Staff| R3[Room<br/>Maintenance]
-    R3 -->|Staff| R1
+    A[Admit<br/>free bed] --> S[In hospital]
+    S -->|Transfer to another free bed| S
+    S -->|Attending doctor:<br/>final diagnosis + summary| D[Discharged]
+    D -->|Room nights × daily rate| B[Pending bill]
 ```
 
-- A patient can only be admitted to a room that's **available**. Otherwise the request is refused with the room number.
-- Admitting marks the room occupied, and discharging frees it. A database trigger does the same thing, so the room stays right even if a row is changed outside the app.
-- Discharging twice is refused, and the discharge time is recorded.
-- The Rooms page shows how many rooms are available, occupied, and in maintenance.
+- **Beds:** every room has a capacity. 1 means a single-patient room, and wards hold more. A room shows *occupied* only when it's full.
+  - Occupancy always follows the actual admissions: the only status staff set by hand is *maintenance*, and only on an empty room.
+  - Database triggers enforce capacity even when two people admit at the same moment.
+- **One stay at a time:** a patient can't be admitted twice, and admissions can't be dated in the future.
+- **Where admissions start:** from the Admissions page, from a free bed on the ward board, or from inside a doctor's consultation (linked to that visit).
+- **Ward board** (Rooms page): rooms by floor, each bed with its patient, attending doctor, nights so far, and an alert icon for allergies or conditions. Click a patient to open the stay, or a free bed to admit.
+- **During the stay:**
+  - A timeline of admissions and transfers.
+  - Progress notes from doctors and nurses.
+  - Vitals (temperature, blood pressure, pulse, breathing rate, SpO₂, pain), shown as a table and a trend chart.
+  - A medication administration record. Doctors order and stop medications, and staff mark each dose given, held, or refused; held and refused need a reason.
+- **Discharge:** only the attending doctor or an admin can discharge, and they must write a final diagnosis and summary, with optional take-home instructions.
+  - The summary prints and then locks; later notes become addenda.
+  - The room nights are billed automatically, with one line per room if the patient was transferred.
+- **Privacy:** the front desk sees the timeline, length of stay, and running cost. Notes, vitals, medications, and the discharge summary are only for admins, doctors, and nurses.
 
 ## Bills and payments
 
@@ -321,8 +333,11 @@ The seed data creates these accounts, all with the password `Admin@123`:
 | | `appointments` | Patient, doctor, start and duration, status, cancel reason, diagnosis, visit note, check-in, start, and end times |
 | | `appointment_history` | Who changed what and when, plus addenda (append-only) |
 | | `prescriptions` / `prescription_items` | One prescription per visit, with its medication lines |
-| | `rooms` | Number, type, floor, daily rate, status |
-| | `admissions` | Patient, doctor, room, diagnosis, admit and discharge dates |
+| | `rooms` | Number, type, floor, beds (capacity), daily rate, status |
+| | `admissions` | Patient, doctor, room, diagnosis, admit and discharge dates, discharge summary, linked visit and bill |
+| | `admission_events` | Stay timeline: admitted, transfers, discharge, progress notes, addenda (append-only) |
+| | `vitals` | Measurements per stay, with range checks |
+| | `medication_orders` / `medication_administrations` | Inpatient medication orders and every dose given, held, or refused |
 | | `lab_tests` / `lab_results` | Ordered tests (optionally linked to the visit) and their result |
 | Pharmacy | `pharmacy_items` / `pharmacy_stock` | Catalog, reorder level, and stock batches |
 | Money | `bills` / `bill_items` | Itemized bills, discount, amount paid |
@@ -330,7 +345,7 @@ The seed data creates these accounts, all with the password `Admin@123`:
 | Schema only | `insurance_providers`, `insurance_claims` | Tables are in place; there are no screens or endpoints for them yet |
 
 **Appointment status:** `SCHEDULED` → `CONFIRMED` → `CHECKED_IN` → `IN_CONSULTATION` → `COMPLETED`, or `CANCELLED` / `NO_SHOW` (see [Appointments and visits](#appointments-and-visits)).
-**Admission status:** `ADMITTED` → `DISCHARGED` or `TRANSFERRED`.
+**Admission status:** `ADMITTED` → `DISCHARGED` (transfers keep the stay `ADMITTED` and are logged on the timeline).
 **Room status:** `AVAILABLE`, `OCCUPIED`, `MAINTENANCE`.
 **Lab test status:** `ORDERED` → `COLLECTED` → `IN_PROGRESS` → `COMPLETED`, or `CANCELLED`.
 **Bill status:** `PENDING`, `PARTIAL`, `PAID`, `CANCELLED`, `REFUNDED`.
@@ -386,12 +401,19 @@ All paths start with `/api`. Every response uses the same `ApiResponse` wrapper.
 | PUT | `/appointments/:id/prescription` | Replace the visit's medication lines (treating doctor) |
 | POST | `/appointments/:id/addendum` | Add an addendum to a completed visit (treating doctor) |
 | GET | `/appointments/patient/:patientId/visits` | A patient's completed visits with their notes (clinical roles) |
-| GET | `/admissions`, `/admissions/:id`, `/admissions/patient/:patientId` | List, view, or by patient |
-| POST | `/admissions` | Admit (room must be available) |
-| PATCH | `/admissions/:id/discharge` | Discharge and free the room |
-| GET | `/rooms`, `/rooms/available`, `/rooms/stats` | List, free rooms, counts by status |
-| POST, PUT | `/rooms`, `/rooms/:id` | Add or edit |
-| PATCH | `/rooms/:id/status` | Set status |
+| GET | `/admissions?status=`, `/admissions/:id`, `/admissions/patient/:patientId` | List (current or discharged), view, or by patient |
+| GET | `/admissions/:id/record` | Timeline, nights, and running cost; plus summary, notes, vitals, and medications for clinical roles |
+| POST | `/admissions` | Admit to a free bed (optional `appointmentId` when admitting from a visit) |
+| POST | `/admissions/:id/transfer` | Move to another free bed |
+| POST | `/admissions/:id/discharge` | Discharge with final diagnosis and summary, and bill the room nights (attending doctor) |
+| POST | `/admissions/:id/notes` | Progress note, or an addendum after discharge (clinical roles) |
+| POST | `/admissions/:id/vitals` | Record vitals (clinical roles) |
+| POST | `/admissions/:id/medications` | Order a medication (doctors) |
+| POST | `/admissions/medications/:orderId/stop` | Stop a medication (doctors) |
+| POST | `/admissions/medications/:orderId/administrations` | Record a dose: given, held, or refused (clinical roles) |
+| GET | `/rooms`, `/rooms/available`, `/rooms/stats`, `/rooms/board` | List, free rooms, counts, ward board with patients |
+| POST, PUT | `/rooms`, `/rooms/:id` | Add or edit (beds, rate) 👑 |
+| PATCH | `/rooms/:id/status` | Maintenance on or off, empty rooms only (admin, nurse) |
 
 **Lab and pharmacy**
 
@@ -480,7 +502,7 @@ Hospital-App/
 │       │   └── exception/     one handler that maps errors to HTTP codes
 │       ├── main/resources/
 │       │   └── db/migration/  schema, seed data, triggers and views, role permissions,
-│       │                      scheduling (V7), consultations (V8)
+│       │                      scheduling (V7), consultations (V8), inpatient care (V9)
 │       └── test/              access matrix and appointment rule tests
 ├── frontend/                  React web app
 │   └── src/

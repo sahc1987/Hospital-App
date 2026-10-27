@@ -1,5 +1,6 @@
 package com.hms.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.hms.entity.enums.AdmissionStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -43,6 +44,24 @@ public class Admission {
 
     @Column(columnDefinition = "TEXT")
     private String diagnosis;
+
+    /** Visit the patient was admitted from, if any. */
+    @Column(name = "appointment_id")
+    private Long appointmentId;
+
+    /** Room-charge bill created on discharge. */
+    @Column(name = "bill_id")
+    private Long billId;
+
+    // Discharge summary: clinical, so hidden here and served by GET /{id}/record to clinical roles.
+    @JsonIgnore @Column(name = "final_diagnosis", columnDefinition = "TEXT")
+    private String finalDiagnosis;
+
+    @JsonIgnore @Column(name = "discharge_summary", columnDefinition = "TEXT")
+    private String dischargeSummary;
+
+    @JsonIgnore @Column(name = "discharge_instructions", columnDefinition = "TEXT")
+    private String dischargeInstructions;
 
     @CreatedDate @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

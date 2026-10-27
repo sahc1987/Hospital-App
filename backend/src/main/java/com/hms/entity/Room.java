@@ -34,6 +34,11 @@ public class Room {
     @Builder.Default
     private RoomStatus status = RoomStatus.AVAILABLE;
 
+    /** Beds. 1 = single-patient room; wards hold more. Status (except MAINTENANCE) is derived by DB trigger. */
+    @Builder.Default
+    @Column(nullable = false)
+    private int capacity = 1;
+
     @Column(name = "daily_rate", nullable = false, precision = 10, scale = 2)
     @Builder.Default
     private BigDecimal dailyRate = BigDecimal.ZERO;

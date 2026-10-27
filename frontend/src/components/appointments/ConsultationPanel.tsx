@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Plus, Printer, Trash2, Play, CheckCircle2, FlaskConical, CalendarPlus } from 'lucide-react'
+import { AlertTriangle, Plus, Printer, Trash2, Play, CheckCircle2, FlaskConical, CalendarPlus, BedDouble } from 'lucide-react'
 import { differenceInYears, differenceInMinutes, format, parseISO } from 'date-fns'
 import { appointmentApi, labApi } from '@/api/endpoints'
 import { Button } from '@/components/ui/Button'
@@ -16,10 +16,11 @@ const emptyRx = (): RxItem => ({ medication: '', dosage: '', frequency: '', dura
  * The doctor's view of a visit: patient context on the right, documentation & orders on the left.
  * `canDocument` = treating doctor or admin; everyone else (e.g. nurses) gets it read-only.
  */
-export function ConsultationPanel({ appt, canDocument, onFollowUp, onDone }: {
+export function ConsultationPanel({ appt, canDocument, onFollowUp, onAdmit, onDone }: {
   readonly appt: Appointment
   readonly canDocument: boolean
   readonly onFollowUp: (weeks: number) => void
+  readonly onAdmit: (diagnosis: string) => void
   readonly onDone: () => void
 }) {
   const qc = useQueryClient()
@@ -180,6 +181,9 @@ export function ConsultationPanel({ appt, canDocument, onFollowUp, onDone }: {
                   In {w} week{w > 1 ? 's' : ''}
                 </Button>
               ))}
+              <Button size="sm" variant="secondary" onClick={() => onAdmit(diagnosis || visit?.diagnosis || '')} icon={<BedDouble size={13} />}>
+                Admit patient
+              </Button>
             </div>
           </section>
         )}

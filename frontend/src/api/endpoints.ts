@@ -3,7 +3,7 @@ import type {
   ApiResponse, PageResponse,
   Patient, Doctor, Department, Appointment, Room, Admission,
   LabTest, Bill, PharmacyItem, Employee, Payroll, DashboardStats, DashboardTrends, AuthUser, SystemUser,
-  AppointmentStatus, AppointmentHistoryEntry, Visit, PastVisit, RxItem,
+  AppointmentStatus, AppointmentHistoryEntry, Visit, PastVisit, RxItem, StayRecord, BoardRoom, AdmissionStatus,
 } from '@/types'
 
 export interface AppointmentFilters {
@@ -115,6 +115,7 @@ export const roomApi = {
   list: (page = 0, size = 24) =>
     client.get<ApiResponse<PageResponse<Room>>>('/rooms', { params: { page, size } }),
   available: () => client.get<ApiResponse<Room[]>>('/rooms/available'),
+  board: () => client.get<ApiResponse<BoardRoom[]>>('/rooms/board'),
   stats: () => client.get<ApiResponse<Record<'total' | 'available' | 'occupied' | 'maintenance', number>>>('/rooms/stats'),
   create: (data: Partial<Room>) => client.post<ApiResponse<Room>>('/rooms', data),
   update: (id: number, data: Partial<Room>) => client.put<ApiResponse<Room>>(`/rooms/${id}`, data),
@@ -124,12 +125,24 @@ export const roomApi = {
 
 // Admissions
 export const admissionApi = {
-  list: (page = 0, size = 20) =>
-    client.get<ApiResponse<PageResponse<Admission>>>('/admissions', { params: { page, size } }),
+  list: (status?: AdmissionStatus, page = 0, size = 20) =>
+    client.get<ApiResponse<PageResponse<Admission>>>('/admissions', { params: { status, page, size } }),
   get: (id: number) => client.get<ApiResponse<Admission>>(`/admissions/${id}`),
-  create: (data: Partial<Admission & { patientId: number; doctorId: number; roomId?: number }>) =>
+  record: (id: number) => client.get<ApiResponse<StayRecord>>(`/admissions/${id}/record`),
+  create: (data: { patientId: number; doctorId: number; roomId?: number; diagnosis?: string; admissionDate?: string; appointmentId?: number }) =>
     client.post<ApiResponse<Admission>>('/admissions', data),
-  discharge: (id: number) => client.patch(`/admissions/${id}/discharge`),
+  transfer: (id: number, roomId: number, note?: string) =>
+    client.post<ApiResponse<Admission>>(`/admissions/${id}/transfer`, { roomId, note }),
+  discharge: (id: number, data: { finalDiagnosis: string; summary: string; instructions?: string }) =>
+    client.post<ApiResponse<Admission>>(`/admissions/${id}/discharge`, data),
+  note: (id: number, note: string) => client.post<ApiResponse<void>>(`/admissions/${id}/notes`, { note }),
+  vitals: (id: number, v: Partial<Record<'tempC' | 'systolic' | 'diastolic' | 'pulse' | 'respRate' | 'spo2' | 'pain', number>>) =>
+    client.post<ApiResponse<void>>(`/admissions/${id}/vitals`, v),
+  orderMed: (id: number, m: { medication: string; dosage?: string; route?: string; frequency?: string; instructions?: string }) =>
+    client.post<ApiResponse<void>>(`/admissions/${id}/medications`, m),
+  stopMed: (orderId: number) => client.post<ApiResponse<void>>(`/admissions/medications/${orderId}/stop`),
+  administer: (orderId: number, status: 'GIVEN' | 'HELD' | 'REFUSED', note?: string) =>
+    client.post<ApiResponse<void>>(`/admissions/medications/${orderId}/administrations`, { status, note }),
 }
 
 // Lab

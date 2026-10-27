@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/Input'
 import { StatusBadge } from '@/components/ui/Badge'
 import { useAuthStore } from '@/store/authStore'
 import { ConsultationPanel } from '@/components/appointments/ConsultationPanel'
+import { AdmitModal, type AdmitPreset } from '@/components/admissions/AdmitModal'
 import { cn } from '@/utils/cn'
 import toast from 'react-hot-toast'
 import type { Appointment, AppointmentStatus, Doctor, UserRole } from '@/types'
@@ -72,6 +73,7 @@ export default function Appointments() {
   const [booking, setBooking] = useState<BookingState | null>(null)
   const [cancelling, setCancelling] = useState<Appointment | null>(null)
   const [details, setDetails] = useState<Appointment | null>(null)
+  const [admitting, setAdmitting] = useState<AdmitPreset | null>(null)
 
   const { data: doctors = [] } = useQuery({
     queryKey: ['doctors-list'],
@@ -157,6 +159,8 @@ export default function Appointments() {
       {booking && <BookingModal state={booking} doctors={doctors} lockDoctor={rules.isDoctor && !FRONT_DESK.includes(rules.role!)}
         onClose={() => setBooking(null)} />}
 
+      {admitting && <AdmitModal preset={admitting} onClose={() => setAdmitting(null)} />}
+
       <Modal open={!!cancelling} onClose={() => setCancelling(null)} title="Cancel appointment" size="md">
         {cancelling && (
           <CancelForm appt={cancelling} pending={status.isPending}
@@ -170,6 +174,10 @@ export default function Appointments() {
         size={details && rules.showsVisit(details) ? 'full' : 'lg'}>
         {details && (rules.showsVisit(details)
           ? <ConsultationPanel appt={details} canDocument={rules.canDocument(details)} onDone={() => setDetails(null)}
+              onAdmit={(diagnosis) => {
+                setAdmitting({ patientId: details.patient.id, doctorId: details.doctor.id, diagnosis, appointmentId: details.id })
+                setDetails(null)
+              }}
               onFollowUp={(weeks) => {
                 setBooking({ patientId: details.patient.id, doctorId: details.doctor.id,
                   date: format(addWeeks(parseISO(details.appointmentDate), weeks), DAY) })

@@ -1,120 +1,186 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { BedDouble, ChevronLeft, ChevronRight } from 'lucide-react'
-import { roomApi } from '@/api/endpoints'
-import { StatusBadge } from '@/components/ui/Badge'
-import type { Room } from '@/types'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AlertTriangle, Plus, Wrench, Pencil } from 'lucide-react'
+import { differenceInCalendarDays, parseISO } from 'date-fns'
+import { admissionApi, roomApi } from '@/api/endpoints'
+import { Button } from '@/components/ui/Button'
+import { Modal } from '@/components/ui/Modal'
+import { Input, Select } from '@/components/ui/Input'
+import { AdmitModal, type AdmitPreset } from '@/components/admissions/AdmitModal'
+import { StayPanel } from '@/components/admissions/StayPanel'
+import { useAuthStore } from '@/store/authStore'
+import { cn } from '@/utils/cn'
+import toast from 'react-hot-toast'
+import type { Admission, BoardRoom, Room, RoomType, UserRole } from '@/types'
 
-const roomTypeColors: Record<string, string> = {
-  GENERAL:   'bg-blue-50 border-blue-100',
-  PRIVATE:   'bg-purple-50 border-purple-100',
-  ICU:       'bg-red-50 border-red-100',
-  EMERGENCY: 'bg-orange-50 border-orange-100',
-  OT:        'bg-yellow-50 border-yellow-100',
-  MATERNITY: 'bg-pink-50 border-pink-100',
-}
+const MOVERS: UserRole[] = ['ADMIN', 'RECEPTIONIST', 'NURSE', 'DOCTOR']
+const TYPES: RoomType[] = ['GENERAL', 'PRIVATE', 'ICU', 'EMERGENCY', 'OT', 'MATERNITY']
 
+/** Ward board: rooms by floor, each bed with its patient. Occupancy comes from admissions, never set by hand. */
 export default function Rooms() {
-  const [page, setPage] = useState(0)
+  const qc = useQueryClient()
+  const role = useAuthStore((s) => s.user?.role) as UserRole | undefined
+  const canAdmit = !!role && MOVERS.includes(role)
+  const canMaintain = role === 'ADMIN' || role === 'NURSE'
+  const isAdmin = role === 'ADMIN'
+  const [admit, setAdmit] = useState<AdmitPreset | null>(null)
+  const [stay, setStay] = useState<Admission | null>(null)
+  const [editing, setEditing] = useState<Partial<Room> | null>(null)
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['rooms', page],
-    queryFn: () => roomApi.list(page),
+  const { data: board = [], isLoading } = useQuery({
+    queryKey: ['rooms', 'board'],
+    queryFn: async () => (await roomApi.board()).data.data,
+    refetchInterval: 60_000,
   })
-
-  const { data: statsData } = useQuery({
-    queryKey: ['rooms-stats'],
-    queryFn: () => roomApi.stats(),
+  const maintain = useMutation({
+    mutationFn: (r: Room) => roomApi.updateStatus(r.id, r.status === 'MAINTENANCE' ? 'AVAILABLE' : 'MAINTENANCE'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['rooms'] }); toast.success('Room updated') },
   })
+  async function openStay(admissionId: number) {
+    setStay((await admissionApi.get(admissionId)).data.data)
+  }
 
-  const pageData = data?.data?.data
-  const rooms = (pageData?.content ?? []) as Room[]
-  const totalPages = pageData?.totalPages ?? 0
-  const stats = statsData?.data?.data
-  const available = stats?.available ?? 0
-  const occupied  = stats?.occupied ?? 0
-  const total     = stats?.total ?? 0
+  const beds = board.reduce((n, b) => n + b.room.capacity, 0)
+  const used = board.reduce((n, b) => n + b.occupants.length, 0)
+  const floors = [...new Set(board.map((b) => b.room.floor ?? 0))].sort((x, y) => x - y)
 
   return (
-    <div className="space-y-5 animate-slide-up">
-      {/* Summary */}
-      <div className="flex items-center gap-4">
-        <div className="card flex items-center gap-3 flex-1">
-          <div className="h-9 w-9 flex items-center justify-center rounded-xl bg-success/10">
-            <BedDouble size={18} className="text-success" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-ink">{available}</p>
-            <p className="text-xs text-ink-muted">Available</p>
-          </div>
-        </div>
-        <div className="card flex items-center gap-3 flex-1">
-          <div className="h-9 w-9 flex items-center justify-center rounded-xl bg-danger/10">
-            <BedDouble size={18} className="text-danger" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-ink">{occupied}</p>
-            <p className="text-xs text-ink-muted">Occupied</p>
-          </div>
-        </div>
-        <div className="card flex items-center gap-3 flex-1">
-          <div className="h-9 w-9 flex items-center justify-center rounded-xl bg-primary/10">
-            <BedDouble size={18} className="text-primary" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-ink">{total}</p>
-            <p className="text-xs text-ink-muted">Total Rooms</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Room grid */}
-      {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="card animate-pulse h-24" />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {rooms.map((room) => (
-            <div
-              key={room.id}
-              className={`rounded-xl border p-3 transition-all hover:shadow-card-hover ${roomTypeColors[room.roomType] ?? 'bg-surface border-border'}`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <p className="font-bold text-ink">{room.roomNumber}</p>
-                <BedDouble size={14} className={room.status === 'AVAILABLE' ? 'text-success' : room.status === 'OCCUPIED' ? 'text-danger' : 'text-warning'} />
-              </div>
-              <p className="text-xs text-ink-muted mb-2">{room.roomType} · Fl. {room.floor ?? '?'}</p>
-              <StatusBadge status={room.status} />
-              <p className="text-xs text-ink-muted mt-2">${room.dailyRate}/day</p>
+    <div className="space-y-6 motion-safe:animate-slide-up">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <dl className="flex flex-wrap gap-3">
+          {[['Beds in use', `${used} / ${beds}`], ['Free beds', beds - used],
+            ['Under maintenance', board.filter((b) => b.room.status === 'MAINTENANCE').length]].map(([k, v]) => (
+            <div key={String(k)} className="card px-5 py-3">
+              <dt className="text-xs text-ink-muted">{k}</dt>
+              <dd className="text-2xl font-bold text-ink">{v}</dd>
             </div>
           ))}
-        </div>
-      )}
+        </dl>
+        {isAdmin && <Button icon={<Plus size={15} />} onClick={() => setEditing({ roomType: 'GENERAL', capacity: 1, dailyRate: 0 })}>Add room</Button>}
+      </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2">
-          <button
-            onClick={() => setPage((p) => p - 1)}
-            disabled={page === 0}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted disabled:opacity-40 hover:bg-surface-card transition"
-          >
-            <ChevronLeft size={14} />
-          </button>
-          <span className="text-sm text-ink-muted">
-            Page {page + 1} of {totalPages}
-          </span>
-          <button
-            onClick={() => setPage((p) => p + 1)}
-            disabled={page >= totalPages - 1}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted disabled:opacity-40 hover:bg-surface-card transition"
-          >
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      )}
+      {isLoading ? <div className="card h-40 animate-pulse" /> : floors.map((floor) => (
+        <section key={floor} aria-labelledby={`floor-${floor}`}>
+          <h2 id={`floor-${floor}`} className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+            {floor ? `Floor ${floor}` : 'No floor'}
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {board.filter((b) => (b.room.floor ?? 0) === floor).map((b) => (
+              <RoomCard key={b.room.id} b={b} canAdmit={canAdmit} canMaintain={canMaintain} isAdmin={isAdmin}
+                onAdmit={() => setAdmit({ roomId: b.room.id })} onOpen={openStay}
+                onMaintain={() => maintain.mutate(b.room)} onEdit={() => setEditing(b.room)} />
+            ))}
+          </div>
+        </section>
+      ))}
+
+      {admit && <AdmitModal preset={admit} onClose={() => setAdmit(null)} />}
+      <Modal open={!!stay} onClose={() => setStay(null)} title="Inpatient stay" size="full">
+        {stay && <StayPanel admission={stay} onClose={() => setStay(null)} />}
+      </Modal>
+      {editing && <RoomForm room={editing} onClose={() => setEditing(null)} />}
     </div>
+  )
+}
+
+function RoomCard({ b, canAdmit, canMaintain, isAdmin, onAdmit, onOpen, onMaintain, onEdit }: {
+  readonly b: BoardRoom; readonly canAdmit: boolean; readonly canMaintain: boolean; readonly isAdmin: boolean
+  readonly onAdmit: () => void; readonly onOpen: (admissionId: number) => void
+  readonly onMaintain: () => void; readonly onEdit: () => void
+}) {
+  const r = b.room
+  const maintenance = r.status === 'MAINTENANCE'
+  const free = maintenance ? 0 : r.capacity - b.occupants.length
+  return (
+    <article className={cn('card space-y-3 p-4', maintenance && 'bg-surface-alt')} aria-label={`Room ${r.roomNumber}`}>
+      <header className="flex items-start justify-between gap-2">
+        <div>
+          <p className="font-bold text-ink">{r.roomNumber}</p>
+          <p className="text-xs text-ink-muted">{r.roomType.toLowerCase()} · ${r.dailyRate}/night</p>
+        </div>
+        <span className={cn('rounded-md px-2 py-0.5 text-xs font-semibold',
+          maintenance ? 'bg-warning-light text-warning-ink' : free === 0 ? 'bg-coral-light text-danger-ink' : 'bg-mint-light text-success-ink')}>
+          {maintenance ? 'Maintenance' : `${b.occupants.length}/${r.capacity} beds`}
+        </span>
+      </header>
+
+      <ul className="space-y-1.5">
+        {b.occupants.map((o) => {
+          const n = Math.max(0, differenceInCalendarDays(new Date(), parseISO(o.admission_date)))
+          return (
+            <li key={o.admission_id}>
+              <button onClick={() => onOpen(o.admission_id)}
+                className="flex w-full items-center justify-between gap-2 rounded-lg bg-primary-50 px-3 py-2 text-left text-sm hover:bg-primary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                <span className="min-w-0">
+                  <span className="flex items-center gap-1.5 truncate font-medium text-primary-800">
+                    {o.patient}
+                    {o.alerts && <AlertTriangle size={13} className="shrink-0 text-danger-ink" aria-label="Clinical alerts" />}
+                  </span>
+                  <span className="block truncate text-xs text-ink-muted">{o.doctor}</span>
+                </span>
+                <span className="shrink-0 text-xs tabular-nums text-ink-muted">{n} night{n === 1 ? '' : 's'}</span>
+              </button>
+            </li>
+          )
+        })}
+        {Array.from({ length: free }).map((_, i) => (
+          <li key={`free-${i}`}>
+            {canAdmit ? (
+              <button onClick={onAdmit}
+                className="w-full rounded-lg border border-dashed border-primary-200 px-3 py-2 text-left text-sm text-primary-700 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                + Free bed — admit
+              </button>
+            ) : <p className="rounded-lg border border-dashed border-border px-3 py-2 text-sm text-ink-muted">Free bed</p>}
+          </li>
+        ))}
+      </ul>
+
+      {(isAdmin || (canMaintain && b.occupants.length === 0)) && (
+        <footer className="flex justify-end gap-1">
+          {canMaintain && b.occupants.length === 0 && (
+            <Button size="sm" variant="ghost" icon={<Wrench size={13} />} onClick={onMaintain}>
+              {maintenance ? 'End maintenance' : 'Maintenance'}
+            </Button>
+          )}
+          {isAdmin && <Button size="sm" variant="ghost" icon={<Pencil size={13} />} onClick={onEdit} aria-label={`Edit room ${r.roomNumber}`} />}
+        </footer>
+      )}
+    </article>
+  )
+}
+
+function RoomForm({ room, onClose }: { readonly room: Partial<Room>; readonly onClose: () => void }) {
+  const qc = useQueryClient()
+  const [f, setF] = useState({
+    roomNumber: room.roomNumber ?? '', roomType: room.roomType ?? 'GENERAL', floor: room.floor ?? '',
+    capacity: room.capacity ?? 1, dailyRate: room.dailyRate ?? 0,
+  })
+  const save = useMutation({
+    mutationFn: () => {
+      const body = { ...f, floor: f.floor === '' ? undefined : Number(f.floor), capacity: Number(f.capacity), dailyRate: Number(f.dailyRate) }
+      return room.id ? roomApi.update(room.id, body) : roomApi.create(body)
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['rooms'] }); toast.success(room.id ? 'Room updated' : 'Room added'); onClose() },
+  })
+  return (
+    <Modal open onClose={onClose} title={room.id ? `Edit room ${room.roomNumber}` : 'Add room'} size="md">
+      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Room number" required value={f.roomNumber} onChange={(e) => setF({ ...f, roomNumber: e.target.value })} />
+          <Select label="Type" required value={f.roomType} onChange={(e) => setF({ ...f, roomType: e.target.value as RoomType })}
+            options={TYPES.map((t) => ({ value: t, label: t.charAt(0) + t.slice(1).toLowerCase() }))} />
+          <Input label="Floor" type="number" value={f.floor} onChange={(e) => setF({ ...f, floor: e.target.value })} />
+          <Input label="Beds (capacity)" type="number" min={1} max={50} required value={f.capacity}
+            onChange={(e) => setF({ ...f, capacity: Number(e.target.value) })} />
+          <Input label="Daily rate ($/night)" type="number" min={0} step="0.01" value={f.dailyRate}
+            onChange={(e) => setF({ ...f, dailyRate: Number(e.target.value) })} />
+        </div>
+        <p className="text-xs text-ink-muted">1 bed = single-patient room. Capacity can't drop below the patients currently in the room.</p>
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button type="submit" loading={save.isPending}>Save</Button>
+        </div>
+      </form>
+    </Modal>
   )
 }
