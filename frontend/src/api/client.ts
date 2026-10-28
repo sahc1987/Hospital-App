@@ -16,8 +16,10 @@ client.interceptors.response.use(
     const serverMsg: string | undefined =
       err.response?.data?.message || err.response?.data?.error
 
-    // A wrong password is also a 401 — let the login form show it instead of reloading
-    if (status === 401 && !err.config?.url?.includes('/auth/login')) {
+    // The login form shows its own errors inline (wrong password is a 401, lockout a 400)
+    if (err.config?.url?.includes('/auth/login')) {
+      // no toast, no redirect
+    } else if (status === 401) {
       useAuthStore.getState().logout()
       globalThis.location.href = '/login'
     } else if (status === 403) {
@@ -28,8 +30,14 @@ client.interceptors.response.use(
       if (!err.response?.data?.fields && serverMsg) {
         toast.error(serverMsg)
       }
+    } else if (status === 409) {
+      // e.g. deleting a patient with history (V10 RESTRICT FKs)
+      toast.error(serverMsg ?? 'This change conflicts with existing data.')
     } else if (status != null && status >= 500) {
-      toast.error(serverMsg ?? 'Server error. Please try again.')
+      // id: a page firing several calls during an outage shows one toast, not a stack
+      toast.error(serverMsg ?? 'Server error. Please try again.', serverMsg ? undefined : { id: 'server-error' })
+    } else if (!err.response && !axios.isCancel(err)) {
+      toast.error("Can't reach the server. Check your connection and try again.", { id: 'offline' })
     }
     return Promise.reject(err)
   },

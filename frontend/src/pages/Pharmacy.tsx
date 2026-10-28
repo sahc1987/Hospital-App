@@ -74,7 +74,7 @@ export default function Pharmacy() {
           <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }}
             placeholder="Search medications..." className="input pl-9" />
         </div>
-        <Button onClick={() => setShowModal(true)} icon={<Plus size={15} />}>Add Item</Button>
+        <Button onClick={() => setShowModal(true)} icon={<Plus size={15} />}>Add item</Button>
       </div>
 
       <div className="card p-0 overflow-hidden">
@@ -150,7 +150,7 @@ export default function Pharmacy() {
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button type="submit" loading={createMutation.isPending}>Add Item</Button>
+            <Button type="submit" loading={createMutation.isPending}>Add item</Button>
           </div>
         </form>
       </Modal>

@@ -83,9 +83,10 @@ export function Table<T extends Record<string, unknown>>({
           <button
             onClick={() => onPageChange?.(currentPage - 1)}
             disabled={currentPage === 0}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted disabled:opacity-40 hover:bg-surface-card transition"
+            aria-label="Previous page"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted disabled:opacity-40 hover:bg-surface-card transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
-            <ChevronLeft size={14} />
+            <ChevronLeft size={14} aria-hidden="true" />
           </button>
           <span className="text-sm text-ink-muted">
             Page {currentPage + 1} of {totalPages}
@@ -93,9 +94,10 @@ export function Table<T extends Record<string, unknown>>({
           <button
             onClick={() => onPageChange?.(currentPage + 1)}
             disabled={currentPage >= totalPages - 1}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted disabled:opacity-40 hover:bg-surface-card transition"
+            aria-label="Next page"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted disabled:opacity-40 hover:bg-surface-card transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
-            <ChevronRight size={14} />
+            <ChevronRight size={14} aria-hidden="true" />
           </button>
         </div>
       )}

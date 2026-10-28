@@ -47,9 +47,9 @@ export function Modal({ open, onClose, title, children, size = 'md' }: Readonly<
                     type="button"
                     aria-label="Close"
                     onClick={onClose}
-                    className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-surface-card text-ink-muted transition"
+                    className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-surface-card text-ink-muted transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
-                    <X size={14} aria-hidden="true" />
+                    <X size={16} aria-hidden="true" />
                   </button>
                 </div>
                 {children}

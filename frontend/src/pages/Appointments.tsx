@@ -1,20 +1,23 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, CalendarDays, List, ChevronLeft, ChevronRight, History } from 'lucide-react'
-import { format, parseISO, startOfWeek, addDays, addWeeks, isToday } from 'date-fns'
+import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
+import { Plus, CalendarDays, List, ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react'
+import { format, parseISO, startOfWeek, addDays, addWeeks, isToday, differenceInYears } from 'date-fns'
 import { appointmentApi, patientApi, doctorApi, authApi } from '@/api/endpoints'
 import type { AppointmentFilters } from '@/api/endpoints'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Select } from '@/components/ui/Input'
+import { SearchSelect } from '@/components/ui/SearchSelect'
 import { StatusBadge } from '@/components/ui/Badge'
 import { useAuthStore } from '@/store/authStore'
 import { ConsultationPanel } from '@/components/appointments/ConsultationPanel'
 import { AdmitModal, type AdmitPreset } from '@/components/admissions/AdmitModal'
 import { cn } from '@/utils/cn'
 import toast from 'react-hot-toast'
-import type { Appointment, AppointmentStatus, Doctor, UserRole } from '@/types'
+import type { Appointment, AppointmentStatus, Doctor, Patient, UserRole } from '@/types'
 
 // ─── Rules (mirror of AppointmentService; the server is authoritative) ───────
 
@@ -29,6 +32,8 @@ const NEXT: Record<AppointmentStatus, AppointmentStatus[]> = {
 const ACTION: Partial<Record<AppointmentStatus, string>> = {
   CONFIRMED: 'Confirm', CHECKED_IN: 'Check in', IN_CONSULTATION: 'Start consult', NO_SHOW: 'No-show', CANCELLED: 'Cancel',
 }
+/** Final, rarely-used transitions: behind the ⋯ menu and a confirmation, away from Confirm / Check in. */
+const FINAL = new Set<AppointmentStatus>(['CANCELLED', 'NO_SHOW'])
 const ALL_STATUSES: AppointmentStatus[] = ['SCHEDULED', 'CONFIRMED', 'CHECKED_IN', 'IN_CONSULTATION', 'COMPLETED', 'CANCELLED', 'NO_SHOW']
 const ACTIVE: AppointmentStatus[] = ['SCHEDULED', 'CONFIRMED', 'CHECKED_IN', 'IN_CONSULTATION', 'COMPLETED']
 const CLINICAL = new Set<UserRole>(['ADMIN', 'DOCTOR', 'NURSE'])
@@ -42,7 +47,16 @@ function cellTone(s: AppointmentStatus): string {
   if (s === 'CHECKED_IN' || s === 'IN_CONSULTATION') return 'bg-primary text-white'
   return 'bg-primary-100 text-primary-800'
 }
-const doctorLabel = (d: Doctor) => (d.specialization ? d.name + ' — ' + d.specialization : d.name)
+/** "DOB Mar 4, 1980 (45) · 555-0101", so two patients with the same name can be told apart. */
+function patientDetail(p: Patient): string | undefined {
+  const parts = [
+    p.dob && `DOB ${format(parseISO(p.dob), 'MMM d, yyyy')} (${differenceInYears(new Date(), parseISO(p.dob))})`,
+    p.phone,
+  ].filter(Boolean)
+  return parts.length ? parts.join(' · ') : undefined
+}
+const searchPatients = async (q: string) => (await patientApi.list(q || undefined, 0, 20)).data.data.content
+const searchDoctors = async (q: string) => (await doctorApi.list(q || undefined, 0, 20)).data.data.content
 function bookingTitle(appt?: Appointment, followUp?: boolean): string {
   if (appt) return 'Reschedule appointment'
   return followUp ? 'Book follow-up' : 'New appointment'
@@ -75,7 +89,7 @@ function useRules() {
   }
 }
 
-type BookingState = { appt?: Appointment; doctorId?: number; patientId?: number; date?: string; time?: string }
+type BookingState = { appt?: Appointment; doctorId?: number; patientId?: number; date?: string; time?: string; followUp?: boolean }
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -86,13 +100,24 @@ export default function Appointments() {
   const [mine, setMine] = useState(true) // only applies to doctors
   const [booking, setBooking] = useState<BookingState | null>(null)
   const [cancelling, setCancelling] = useState<Appointment | null>(null)
+  const [noShow, setNoShow] = useState<Appointment | null>(null)
   const [details, setDetails] = useState<Appointment | null>(null)
   const [admitting, setAdmitting] = useState<AdmitPreset | null>(null)
 
+  // Patients page "Book appointment" deep-links here with ?book=<patientId>
+  const [params, setParams] = useSearchParams()
+  const bookFor = params.get('book')
+  const canBookAny = rules.canBook()
+  useEffect(() => {
+    if (!bookFor || !rules.role) return
+    if (canBookAny) setBooking({ patientId: Number(bookFor), doctorId: rules.isDoctor ? rules.ownDoctorId : undefined })
+    setParams({}, { replace: true })
+  }, [bookFor, canBookAny, rules.role, rules.isDoctor, rules.ownDoctorId, setParams])
+
+  // Week view and the list's doctor filter. Booking itself searches the server (SearchSelect).
   const { data: doctors = [] } = useQuery({
     queryKey: ['doctors-list'],
-    // ponytail: first 100 doctors — switch to a search box past that
-    queryFn: async () => (await doctorApi.list(undefined, 0, 100)).data.data.content,
+    queryFn: async () => (await doctorApi.list(undefined, 0, 500)).data.data.content,
   })
 
   const status = useMutation({
@@ -103,37 +128,61 @@ export default function Appointments() {
       void qc.invalidateQueries({ queryKey: ['today-appointments'] })
       toast.success(`Marked ${pretty(v.to).toLowerCase()}`)
       setCancelling(null)
+      setNoShow(null)
     },
     // errors: the axios interceptor already toasts the server's message
   })
 
   function act(a: Appointment, to: AppointmentStatus) {
     if (to === 'CANCELLED') setCancelling(a)
+    else if (to === 'NO_SHOW') setNoShow(a)
     else status.mutate({ a, to })
   }
 
-  const actions = (a: Appointment) => (
-    <div className="flex flex-wrap gap-1">
-      {rules.actions(a).map((to) => (
-        <Button key={to} size="sm" variant={to === 'CANCELLED' || to === 'NO_SHOW' ? 'ghost' : 'secondary'}
-          onClick={() => act(a, to)} disabled={status.isPending}>
-          {ACTION[to]}
-        </Button>
-      ))}
-      {isOpen(a.status) && rules.canBook(a.doctor?.id) && (
-        <Button size="sm" variant="ghost" onClick={() => setBooking({ appt: a, doctorId: a.doctor.id })}>Reschedule</Button>
-      )}
-      {rules.showsVisit(a) && (
-        <Button size="sm" variant={a.status === 'IN_CONSULTATION' && rules.canDocument(a) ? 'primary' : 'secondary'}
-          onClick={() => setDetails(a)}>
-          {a.status === 'COMPLETED' ? 'View visit' : 'Open visit'}
-        </Button>
-      )}
-      <Button size="sm" variant="ghost" onClick={() => setDetails(a)} aria-label={`Details for ${a.patient?.name}`}>
-        <History size={14} aria-hidden="true" />
-      </Button>
-    </div>
-  )
+  const actions = (a: Appointment) => {
+    const allowed = rules.actions(a)
+    const more = [
+      ...(isOpen(a.status) && rules.canBook(a.doctor?.id)
+        ? [{ label: 'Reschedule', onClick: () => setBooking({ appt: a, doctorId: a.doctor.id }), danger: false }] : []),
+      { label: 'Details & history', onClick: () => setDetails(a), danger: false },
+      ...allowed.filter((to) => FINAL.has(to)).map((to) => ({ label: ACTION[to]! + '…', onClick: () => act(a, to), danger: true })),
+    ]
+    return (
+      // justify-end: the ⋯ button lines up in one column whether or not a row has primary actions
+      <div className="flex items-center justify-end gap-1">
+        {allowed.filter((to) => !FINAL.has(to)).map((to) => (
+          <Button key={to} size="sm" variant="secondary" onClick={() => act(a, to)} disabled={status.isPending}>
+            {ACTION[to]}
+          </Button>
+        ))}
+        {rules.showsVisit(a) && (
+          <Button size="sm" variant={a.status === 'IN_CONSULTATION' && rules.canDocument(a) ? 'primary' : 'secondary'}
+            onClick={() => setDetails(a)}>
+            {a.status === 'COMPLETED' ? 'View visit' : 'Open visit'}
+          </Button>
+        )}
+        <Menu>
+          <MenuButton aria-label={`More actions for ${a.patient?.name ?? 'appointment'}`}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-card hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+            <MoreHorizontal size={16} aria-hidden="true" />
+          </MenuButton>
+          <MenuItems anchor="bottom end"
+            className="z-50 min-w-44 rounded-xl border border-border bg-surface p-1 text-sm shadow-card-hover [--anchor-gap:4px] focus:outline-none">
+            {more.map((m, i) => (
+              <MenuItem key={m.label}>
+                <button onClick={m.onClick}
+                  className={cn('block w-full rounded-lg px-3 py-2 text-left data-[focus]:bg-surface-card',
+                    m.danger ? 'text-danger-ink' : 'text-ink',
+                    m.danger && i > 0 && !more[i - 1].danger && 'mt-1 border-t border-border pt-2')}>
+                  {m.label}
+                </button>
+              </MenuItem>
+            ))}
+          </MenuItems>
+        </Menu>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-5 motion-safe:animate-slide-up">
@@ -184,6 +233,22 @@ export default function Appointments() {
         )}
       </Modal>
 
+      <Modal open={!!noShow} onClose={() => setNoShow(null)} title="Mark as no-show?" size="md">
+        {noShow && (
+          <div className="space-y-4">
+            <p className="text-sm text-ink">
+              {noShow.patient?.name} with {noShow.doctor?.name}, {format(parseISO(noShow.appointmentDate), 'EEE, MMM d · h:mm a')}.
+              This is final: a no-show can't be changed back. To see the patient later, book a new appointment.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="secondary" onClick={() => setNoShow(null)}>Go back</Button>
+              <Button variant="danger" loading={status.isPending}
+                onClick={() => status.mutate({ a: noShow, to: 'NO_SHOW' })}>Mark no-show</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <Modal open={!!details} onClose={() => setDetails(null)}
         title={details && rules.showsVisit(details) ? 'Consultation' : 'Appointment details'}
         size={details && rules.showsVisit(details) ? 'full' : 'lg'}>
@@ -194,7 +259,7 @@ export default function Appointments() {
                 setDetails(null)
               }}
               onFollowUp={(weeks) => {
-                setBooking({ patientId: details.patient.id, doctorId: details.doctor.id,
+                setBooking({ patientId: details.patient.id, doctorId: details.doctor.id, followUp: true,
                   date: format(addWeeks(parseISO(details.appointmentDate), weeks), DAY) })
                 setDetails(null)
               }} />
@@ -439,18 +504,28 @@ function BookingModal({ state, doctors, lockDoctor, onClose }: {
 }) {
   const qc = useQueryClient()
   const appt = state.appt
-  const [patientId, setPatientId] = useState(state.patientId ? String(state.patientId) : '')
-  const [doctorId, setDoctorId] = useState(state.doctorId ? String(state.doctorId) : '')
+  const [patient, setPatient] = useState<Patient | null>(null)
+  const [doctor, setDoctor] = useState<Doctor | null>(() => doctors.find((d) => d.id === state.doctorId) ?? null)
   const [date, setDate] = useState(state.date ?? '')
   const [slot, setSlot] = useState(state.date && state.time ? `${state.date}T${state.time}:00` : '')
   const [reason, setReason] = useState('')
+  const patientId = patient?.id ?? state.patientId
+  const doctorId = doctor?.id ?? state.doctorId
 
-  const { data: patients = [] } = useQuery({
-    enabled: !appt,
-    queryKey: ['patients-list'],
-    // ponytail: first 100 patients — switch to a search box past that
-    queryFn: async () => (await patientApi.list(undefined, 0, 100)).data.data.content,
+  // Presets arrive as ids (follow-up, Patients deep link, doctor's own diary): load the records for the pickers
+  const { data: presetPatient } = useQuery({
+    enabled: !appt && !!state.patientId,
+    queryKey: ['patient', state.patientId],
+    queryFn: async () => (await patientApi.get(state.patientId!)).data.data,
   })
+  const { data: presetDoctor } = useQuery({
+    enabled: !appt && !!state.doctorId && !doctor,
+    queryKey: ['doctor', state.doctorId],
+    queryFn: async () => (await doctorApi.get(state.doctorId!)).data.data,
+  })
+  useEffect(() => { if (presetPatient) setPatient((p) => p ?? presetPatient) }, [presetPatient])
+  useEffect(() => { if (presetDoctor) setDoctor((d) => d ?? presetDoctor) }, [presetDoctor])
+
   const { data: slots, isFetching } = useQuery({
     enabled: !!doctorId && !!date,
     queryKey: ['appointments', 'slots', doctorId, date],
@@ -471,7 +546,7 @@ function BookingModal({ state, doctors, lockDoctor, onClose }: {
   })
 
   return (
-    <Modal open onClose={onClose} title={bookingTitle(appt, !!state.patientId)} size="lg">
+    <Modal open onClose={onClose} title={bookingTitle(appt, state.followUp)} size="lg">
       <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
         {appt ? (
           <p className="rounded-xl bg-surface-alt p-3 text-sm text-ink">
@@ -480,11 +555,14 @@ function BookingModal({ state, doctors, lockDoctor, onClose }: {
           </p>
         ) : (
           <>
-            <Select label="Patient" required value={patientId} disabled={!!state.patientId} onChange={(e) => setPatientId(e.target.value)}
-              options={patients.map((p) => ({ value: p.id, label: p.name }))} />
-            <Select label="Doctor" required value={doctorId} disabled={lockDoctor}
-              onChange={(e) => { setDoctorId(e.target.value); setSlot('') }}
-              options={doctors.map((d) => ({ value: d.id, label: doctorLabel(d) }))} />
+            <SearchSelect<Patient> label="Patient" value={patient} onChange={setPatient} disabled={!!state.patientId}
+              queryKey="patient-search" search={searchPatients} display={(p) => p.name} detail={patientDetail}
+              placeholder="Search by name, phone or email…" />
+            <SearchSelect<Doctor> label="Doctor" value={doctor} disabled={lockDoctor}
+              onChange={(d) => { setDoctor(d); setSlot('') }}
+              queryKey="doctor-search" search={searchDoctors} display={(d) => d.name}
+              detail={(d) => [...new Set([d.specialization, d.department?.name].filter(Boolean))].join(' · ') || undefined}
+              placeholder="Search by name…" />
           </>
         )}
 

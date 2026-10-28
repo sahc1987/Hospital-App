@@ -93,7 +93,7 @@ public class GlobalExceptionHandler {
         String m = String.valueOf(ex.getMostSpecificCause().getMessage());
         if (m.contains("violates foreign key constraint")) {
             return build(HttpStatus.CONFLICT,
-                    "This record has clinical or billing history and can't be deleted. Deactivate it instead.");
+                    "This record has clinical or billing history, so it can't be deleted. The history is kept for the medical record.");
         }
         log.warn("Integrity violation: {}", m);
         return build(HttpStatus.CONFLICT, "This change conflicts with existing data");

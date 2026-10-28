@@ -32,7 +32,7 @@ export default function Departments() {
       setEditing(null)
       reset()
     },
-    onError: () => toast.error('Failed to save department'),
+    // errors: the axios interceptor already toasts the server's message
   })
 
   const deleteMutation = useMutation({
@@ -49,7 +49,7 @@ export default function Departments() {
       <div className="flex items-center justify-between">
         <div />
         <Button onClick={() => { setEditing(null); reset(); setShowModal(true) }} icon={<Plus size={15} />}>
-          Add Department
+          Add department
         </Button>
       </div>
 
@@ -70,7 +70,8 @@ export default function Departments() {
               {dept.description && (
                 <p className="text-xs text-ink-muted mt-1 line-clamp-2">{dept.description}</p>
               )}
-              <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* focus-within: keyboard users see the actions too, not only mouse hover */}
+              <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                 <button
                   onClick={() => {
                     setEditing(dept)
@@ -78,15 +79,17 @@ export default function Departments() {
                     setValue('description', dept.description)
                     setShowModal(true)
                   }}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface border border-border text-ink-muted hover:text-primary transition"
+                  aria-label={`Edit ${dept.name}`}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-border text-ink-muted hover:text-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
-                  <Pencil size={12} />
+                  <Pencil size={13} aria-hidden="true" />
                 </button>
                 <button
-                  onClick={() => { if (confirm(`Delete ${dept.name}?`)) deleteMutation.mutate(dept.id) }}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface border border-border text-ink-muted hover:text-danger transition"
+                  onClick={() => { if (confirm(`Delete the ${dept.name} department? This can't be undone.`)) deleteMutation.mutate(dept.id) }}
+                  aria-label={`Delete ${dept.name}`}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-border text-ink-muted hover:text-danger transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={13} aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -99,6 +102,7 @@ export default function Departments() {
           <button
             onClick={() => setPage((p) => p - 1)}
             disabled={page === 0}
+            aria-label="Previous page"
             className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted disabled:opacity-40 hover:bg-surface-card transition"
           >
             <ChevronLeft size={14} />
@@ -109,6 +113,7 @@ export default function Departments() {
           <button
             onClick={() => setPage((p) => p + 1)}
             disabled={page >= totalPages - 1}
+            aria-label="Next page"
             className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-muted disabled:opacity-40 hover:bg-surface-card transition"
           >
             <ChevronRight size={14} />
@@ -117,9 +122,9 @@ export default function Departments() {
       )}
 
       <Modal open={showModal} onClose={() => { setShowModal(false); setEditing(null) }}
-        title={editing ? 'Edit Department' : 'New Department'} size="sm">
+        title={editing ? 'Edit department' : 'Add department'} size="sm">
         <form onSubmit={handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
-          <Input label="Department Name" {...register('name')} placeholder="Cardiology" required />
+          <Input label="Department name" {...register('name')} placeholder="Cardiology" required />
           <div className="flex flex-col gap-1.5">
             <label htmlFor="dept-description" className="text-sm font-medium text-ink">Description</label>
             <textarea id="dept-description" {...register('description')} rows={3}
@@ -128,7 +133,7 @@ export default function Departments() {
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>Cancel</Button>
             <Button type="submit" loading={saveMutation.isPending}>
-              {editing ? 'Save' : 'Create'}
+              {editing ? 'Save changes' : 'Add department'}
             </Button>
           </div>
         </form>

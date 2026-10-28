@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, Bell, Settings, Menu, CheckCheck, Trash2, Info, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react'
+import { Search, Bell, Menu, CheckCheck, Trash2, Info, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useNotificationsStore } from '@/store/notificationsStore'
@@ -15,7 +15,7 @@ const routeTitles: Record<string, { title: string; subtitle: string }> = {
   '/appointments':  { title: 'Appointments',        subtitle: 'Schedule and manage appointments' },
   '/doctors':       { title: 'Doctors',             subtitle: 'Medical staff directory' },
   '/departments':   { title: 'Departments',         subtitle: 'Hospital departments' },
-  '/admissions':    { title: 'Admissions',          subtitle: 'OPD & IPD management' },
+  '/admissions':    { title: 'Admissions',          subtitle: 'Inpatient stays, transfers and discharges' },
   '/rooms':         { title: 'Rooms',               subtitle: 'Room availability & assignments' },
   '/lab':           { title: 'Laboratory',          subtitle: 'Test orders and results' },
   '/pharmacy':      { title: 'Pharmacy',            subtitle: 'Medication & inventory' },
@@ -157,18 +157,20 @@ export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
                     <button
                       onClick={markAllRead}
                       title="Mark all as read"
-                      className="rounded-lg p-1.5 text-ink-subtle hover:bg-surface-alt hover:text-ink transition-colors"
+                      aria-label="Mark all as read"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-subtle hover:bg-surface-alt hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                     >
-                      <CheckCheck size={14} />
+                      <CheckCheck size={14} aria-hidden="true" />
                     </button>
                   )}
                   {items.length > 0 && (
                     <button
                       onClick={clear}
-                      title="Clear all"
-                      className="rounded-lg p-1.5 text-ink-subtle hover:bg-danger/10 hover:text-danger transition-colors"
+                      title="Clear all notifications"
+                      aria-label="Clear all notifications"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-subtle hover:bg-danger/10 hover:text-danger transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={14} aria-hidden="true" />
                     </button>
                   )}
                 </div>
@@ -214,13 +216,7 @@ export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
           )}
         </div>
 
-        {/* Settings → profile */}
-        {/* Same target as the avatar; dropped on phones to save width */}
-        <button onClick={() => navigate('/profile')} className={cn(iconBtn, 'hidden sm:flex')} aria-label="Account settings">
-          <Settings size={17} className="text-primary" aria-hidden="true" />
-        </button>
-
-        {/* Avatar → profile */}
+        {/* Avatar → profile (the only header route there; the sidebar footer is the other) */}
         <button
           onClick={() => navigate('/profile')}
           className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white font-semibold text-sm shadow-primary hover:bg-primary-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"

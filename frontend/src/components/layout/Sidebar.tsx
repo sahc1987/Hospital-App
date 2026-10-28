@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, Users, CalendarDays, Stethoscope, Building2,
-  BedDouble, FlaskConical, Pill, DollarSign, UserCog, BarChart3,
+  LayoutDashboard, Users, CalendarDays, Stethoscope, Building2, ClipboardPlus,
+  BedDouble, FlaskConical, Pill, Receipt, Wallet, UserCog, BarChart3,
   LogOut, HeartPulse, KeyRound, ShieldCheck, PanelLeftOpen, PanelLeftClose, X,
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
@@ -25,7 +25,7 @@ const navGroups = [
     items: [
       { to: '/patients',     icon: Users,        label: 'Patients' },
       { to: '/appointments', icon: CalendarDays, label: 'Appointments' },
-      { to: '/admissions',   icon: BedDouble,    label: 'OPD / IPD' },
+      { to: '/admissions',   icon: ClipboardPlus, label: 'Admissions' },
       { to: '/doctors',      icon: Stethoscope,  label: 'Doctors' },
       { to: '/departments',  icon: Building2,    label: 'Departments' },
     ],
@@ -36,14 +36,14 @@ const navGroups = [
       { to: '/lab',      icon: FlaskConical, label: 'Laboratory' },
       { to: '/pharmacy', icon: Pill,         label: 'Pharmacy' },
       { to: '/rooms',    icon: BedDouble,    label: 'Rooms' },
-      { to: '/billing',  icon: DollarSign,   label: 'Billing & Insurance' },
+      { to: '/billing',  icon: Receipt,      label: 'Billing' },
     ],
   },
   {
     label: 'HR',
     items: [
       { to: '/employees', icon: UserCog,   label: 'Employees' },
-      { to: '/payroll',   icon: DollarSign, label: 'Payroll' },
+      { to: '/payroll',   icon: Wallet,    label: 'Payroll' },
     ],
   },
   {

@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
-import { CalendarDays, Pencil, Mail, Clock } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { CalendarDays, Pencil, Mail, Clock, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react'
 import { LineChart, Line, ResponsiveContainer } from 'recharts'
-import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { dashboardApi, appointmentApi, authApi } from '@/api/endpoints'
 import { useAuthStore } from '@/store/authStore'
 import { canAccess } from '@/utils/permissions'
-import { ClinicianIllustration } from '@/components/ui/ClinicianIllustration'
 import { cn } from '@/utils/cn'
 import { withDr } from '@/utils/names'
 import type { Appointment, UserRole } from '@/types'
@@ -69,17 +68,17 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <TrendTile
-            title="Admissions" tint="coral"
+            title="Admissions" tint="coral" to="/admissions"
             value={stats?.currentAdmissions} caption="patients admitted now"
             series={trends?.admissions} seriesLabel="new admissions"
           />
           <TrendTile
-            title="Appointments" tint="mint"
+            title="Appointments" tint="mint" to="/appointments"
             value={stats?.todayAppointments} caption="scheduled today"
             series={trends?.appointments} seriesLabel="appointments"
           />
           <TrendTile
-            title="Laboratory" tint="primary"
+            title="Laboratory" tint="primary" to="/lab"
             value={stats?.pendingLabTests} caption="tests pending"
             series={trends?.labTests} seriesLabel="tests ordered"
           />
@@ -95,7 +94,7 @@ export default function Dashboard() {
 
       <div className="space-y-6 xl:col-span-4">
         <ProfileCard />
-        <WeekCalendar appointments={today} />
+        <TodaySchedule appointments={today} />
       </div>
     </div>
   )
@@ -103,33 +102,19 @@ export default function Dashboard() {
 
 // ─── Widgets ─────────────────────────────────────────────────────────────────
 
+/** One line: the work below it gets the space (this page stays open all shift). */
 function WelcomeBanner({ name }: { readonly name: string }) {
   const now = new Date()
   return (
-    <section className="card-dark relative overflow-hidden p-0" aria-labelledby="welcome-title">
-      {/* Topographic contour lines */}
-      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 600 220" preserveAspectRatio="none" aria-hidden="true">
-        {[0, 1, 2, 3].map((i) => (
-          <path key={i} fill="none" stroke="white" strokeOpacity=".1" strokeWidth="1.5"
-            d={`M${260 + i * 30} 0c-40 60 60 90 20 140s40 60 ${30 + i * 10} 80`} />
-        ))}
-        <path fill="none" stroke="white" strokeOpacity=".08" strokeWidth="1.5" d="M0 190c120-40 200 20 320-10" />
-      </svg>
-
-      <div className="relative flex min-h-[12rem] items-center">
-        <div className="flex-1 p-8">
-          <p className="inline-flex items-center gap-2 rounded-lg bg-white/15 px-3 py-1.5 text-xs font-medium">
-            <CalendarDays size={14} aria-hidden="true" />
-            <time dateTime={now.toISOString()}>{format(now, 'MMM d, yyyy · h:mm a')}</time>
-          </p>
-          {/* h2: the Header already renders the page's h1 */}
-          <h2 id="welcome-title" className="mt-6 text-2xl font-bold sm:text-3xl">
-            {greeting(now)}{name ? `, ${name}` : ''}!
-          </h2>
-          <p className="mt-1 text-sm text-white">Have a nice {format(now, 'EEEE')}!</p>
-        </div>
-        <ClinicianIllustration className="hidden h-48 w-auto shrink-0 self-end md:block" />
-      </div>
+    <section className="card-dark flex flex-wrap items-center justify-between gap-3 px-6 py-4" aria-labelledby="welcome-title">
+      {/* h2: the Header already renders the page's h1 */}
+      <h2 id="welcome-title" className="text-lg font-bold">
+        {greeting(now)}{name ? `, ${name}` : ''}
+      </h2>
+      <p className="inline-flex items-center gap-2 rounded-lg bg-white/15 px-3 py-1.5 text-xs font-medium">
+        <CalendarDays size={14} aria-hidden="true" />
+        <time dateTime={now.toISOString()}>{format(now, 'EEEE, MMM d, yyyy')}</time>
+      </p>
     </section>
   )
 }
@@ -139,27 +124,50 @@ function EndDot({ cx, cy, index, last, fill }: Readonly<{ cx?: number; cy?: numb
   return index === last ? <circle cx={cx} cy={cy} r={3.5} fill={fill} /> : <g />
 }
 
+// The tint only tells the tiles apart; it says nothing about good or bad (the trend pill is neutral)
 const tints = {
-  coral:   { box: 'bg-coral-light',  pill: 'bg-coral-light text-danger-ink',  hex: HEX.coral },
-  mint:    { box: 'bg-mint-light',   pill: 'bg-mint-light text-success-ink',  hex: HEX.mint },
-  primary: { box: 'bg-primary-50',   pill: 'bg-primary-50 text-primary-700',  hex: HEX.primary },
+  coral:   { box: 'bg-coral-light',  hex: HEX.coral },
+  mint:    { box: 'bg-mint-light',   hex: HEX.mint },
+  primary: { box: 'bg-primary-50',   hex: HEX.primary },
 } as const
 
-function TrendTile({ title, tint, value, caption, series, seriesLabel }: {
+/** Direction arrow + %: more admissions isn't "bad" and more appointments isn't "good", so no red/green. */
+function TrendPill({ pct }: { readonly pct: number | null }) {
+  const base = 'mt-2 inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-surface-alt px-2 py-0.5 text-[11px] font-medium text-ink-muted'
+  if (pct === null) return <p className={base}>No baseline yet</p>
+  let Icon = Minus
+  if (pct > 0) Icon = ArrowUpRight
+  else if (pct < 0) Icon = ArrowDownRight
+  return (
+    <p className={base} title="Today compared with the average of the previous 6 days">
+      <Icon size={12} aria-hidden="true" />
+      {signed(pct)}% vs 6-day avg
+    </p>
+  )
+}
+
+function TrendTile({ title, tint, to, value, caption, series, seriesLabel }: {
   readonly title: string
   readonly tint: keyof typeof tints
+  /** Drill-down route; the whole tile becomes a link when the role can open it. */
+  readonly to: string
   readonly value?: number
   readonly caption: string
   readonly series?: number[]
   readonly seriesLabel: string
 }) {
+  const role = useAuthStore((s) => s.user?.role) as UserRole | undefined
+  const linked = !!role && canAccess(role, to)
   const t = tints[tint]
   const pct = series ? trendPct(series) : null
   const data = (series ?? []).map((v, i) => ({ i, v }))
   const last = data.length - 1
 
   return (
-    <section className="card flex items-center gap-4 p-5" aria-label={title}>
+    <section
+      className={cn('card relative flex items-center gap-4 p-5', linked && 'transition-shadow hover:shadow-card-hover focus-within:ring-2 focus-within:ring-primary/50')}
+      aria-label={title}
+    >
       <div className={cn('h-20 w-20 shrink-0 rounded-xl px-1.5 py-3', t.box)}>
         <div className="h-full w-full" aria-hidden="true">
           {data.length > 0 && (
@@ -178,15 +186,17 @@ function TrendTile({ title, tint, value, caption, series, seriesLabel }: {
         )}
       </div>
       <div className="min-w-0">
-        <h2 className={cardTitle}>{title}</h2>
+        <h2 className={cardTitle}>
+          {linked ? (
+            // Stretched link: the ::after covers the whole card, so the tile is one big target
+            <Link to={to} className="after:absolute after:inset-0 after:rounded-card focus-visible:outline-none">
+              {title}<span className="sr-only">, open {title.toLowerCase()}</span>
+            </Link>
+          ) : title}
+        </h2>
         <p className="mt-1 text-2xl font-bold text-ink">{value ?? '—'}</p>
         <p className="text-xs text-ink-muted">{caption}</p>
-        <p
-          className={cn('mt-2 inline-block whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-medium', t.pill)}
-          title="Today compared with the average of the previous 6 days"
-        >
-          {pct === null ? 'No baseline yet' : signed(pct) + '% vs avg'}
-        </p>
+        <TrendPill pct={pct} />
       </div>
     </section>
   )
@@ -235,10 +245,11 @@ function AppointmentProgress({ appointments }: { readonly appointments: Appointm
   const role = useAuthStore((s) => s.user?.role) as UserRole | undefined
   const total = appointments.length
   const count = (...s: Appointment['status'][]) => appointments.filter((a) => s.includes(a.status)).length
+  // Same status colours as the schedule dots: done = mint, still to come = primary, lost = coral
   const bars = [
-    { label: 'Completed',            value: count('COMPLETED'),            fill: HEX.primary },
-    { label: 'Upcoming / waiting',   value: count('SCHEDULED', 'CONFIRMED', 'CHECKED_IN', 'IN_CONSULTATION'), fill: HEX.coral },
-    { label: 'Cancelled / no-show',  value: count('CANCELLED', 'NO_SHOW'), fill: HEX.pink },
+    { label: 'Completed',            value: count('COMPLETED'),            fill: HEX.mint },
+    { label: 'Upcoming / waiting',   value: count('SCHEDULED', 'CONFIRMED', 'CHECKED_IN', 'IN_CONSULTATION'), fill: HEX.primary },
+    { label: 'Cancelled / no-show',  value: count('CANCELLED', 'NO_SHOW'), fill: HEX.coral },
   ]
 
   return (
@@ -342,37 +353,19 @@ function dotColor(s: Appointment['status']): string {
   return s === 'CANCELLED' || s === 'NO_SHOW' ? 'bg-coral' : 'bg-primary'
 }
 
-function WeekCalendar({ appointments }: { readonly appointments: Appointment[] }) {
+/** Today's appointments only (that's all /appointments/today returns), so no week strip that looks clickable. */
+function TodaySchedule({ appointments }: { readonly appointments: Appointment[] }) {
   const now = new Date()
-  const week = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(now), i))
   const sorted = [...appointments].sort((a, b) => a.appointmentDate.localeCompare(b.appointmentDate))
 
   return (
     <section className="card overflow-hidden p-0" aria-labelledby="calendar-title">
       <div className="card-band">
-        <h2 id="calendar-title">This week</h2>
-        <span className="rounded-lg bg-white/20 px-2.5 py-1 normal-case tracking-normal">{format(now, 'MMMM yyyy')}</span>
+        <h2 id="calendar-title">Today's schedule</h2>
+        <span className="rounded-lg bg-white/20 px-2.5 py-1 normal-case tracking-normal">{format(now, 'EEE, MMM d')}</span>
       </div>
 
-      {/* Display only: other days' schedules aren't loaded, so these aren't buttons */}
-      <ol className="grid grid-cols-7 gap-1 bg-primary-50 px-3 py-3 text-center">
-        {week.map((d) => {
-          const isToday = isSameDay(d, now)
-          return (
-            <li
-              key={d.toISOString()}
-              aria-current={isToday ? 'date' : undefined}
-              className={cn('rounded-xl py-2', isToday ? 'bg-primary text-white shadow-primary' : 'text-ink')}
-            >
-              <span className={cn('block text-[11px]', isToday ? 'text-white' : 'text-ink-muted')}>{format(d, 'EEE')}</span>
-              <span className="block text-lg font-semibold">{format(d, 'd')}</span>
-            </li>
-          )
-        })}
-      </ol>
-
-      <div className="px-5 pb-5 pt-4">
-        <h3 className={cardTitle}>{format(now, 'MMMM d')}</h3>
+      <div className="px-5 pb-5 pt-2">
         {sorted.length === 0 ? (
           <p className="py-8 text-center text-sm text-ink-muted">
             <Clock size={28} className="mx-auto mb-2 text-primary-200" aria-hidden="true" />

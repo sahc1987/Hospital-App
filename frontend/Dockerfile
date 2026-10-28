@@ -3,6 +3,9 @@ WORKDIR /app
 
 ARG VITE_API_URL=http://localhost:8080
 ENV VITE_API_URL=$VITE_API_URL
+# true: the login page shows the seeded demo credentials
+ARG VITE_DEMO=false
+ENV VITE_DEMO=$VITE_DEMO
 
 COPY package*.json ./
 # --ignore-scripts: no dependency lifecycle scripts run during install (supply-chain hardening)

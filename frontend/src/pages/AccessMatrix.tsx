@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import {
-  LayoutDashboard, Users, CalendarDays, Stethoscope, Building2,
-  BedDouble, FlaskConical, Pill, DollarSign, UserCog, BarChart3,
+  LayoutDashboard, Users, CalendarDays, Stethoscope, Building2, ClipboardPlus,
+  BedDouble, FlaskConical, Pill, Receipt, Wallet, UserCog, BarChart3,
   KeyRound, ShieldCheck, RotateCcw, Save, LockKeyhole,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -29,13 +29,13 @@ const MODULES: { route: string; label: string; icon: React.ElementType; locked?:
   { route: '/appointments', label: 'Appointments',       icon: CalendarDays },
   { route: '/doctors',      label: 'Doctors',            icon: Stethoscope },
   { route: '/departments',  label: 'Departments',        icon: Building2 },
-  { route: '/admissions',   label: 'OPD / IPD',          icon: BedDouble },
+  { route: '/admissions',   label: 'Admissions',         icon: ClipboardPlus },
   { route: '/rooms',        label: 'Rooms',              icon: BedDouble },
   { route: '/lab',          label: 'Laboratory',         icon: FlaskConical },
   { route: '/pharmacy',     label: 'Pharmacy',           icon: Pill },
-  { route: '/billing',      label: 'Billing & Insurance',icon: DollarSign },
+  { route: '/billing',      label: 'Billing',            icon: Receipt },
   { route: '/employees',    label: 'Employees',          icon: UserCog },
-  { route: '/payroll',      label: 'Payroll',            icon: DollarSign },
+  { route: '/payroll',      label: 'Payroll',            icon: Wallet },
   { route: '/reports',      label: 'Reports & Analytics',icon: BarChart3 },
   { route: '/users',        label: 'User Management',    icon: KeyRound,    locked: true },
   { route: '/access-matrix',label: 'Access Matrix',      icon: ShieldCheck, locked: true },

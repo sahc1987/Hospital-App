@@ -83,10 +83,10 @@ export default function Doctors() {
         <div className="relative flex-1 max-w-xs">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-subtle" />
           <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }}
-            placeholder="Search doctors..." className="input pl-9" />
+            placeholder="Search doctors…" aria-label="Search doctors" className="input pl-9" />
         </div>
         <Button onClick={() => { setEditing(null); reset(HOURS_DEFAULTS); setDeptId(''); setShowModal(true) }} icon={<Plus size={15} />}>
-          Add Doctor
+          Add doctor
         </Button>
       </div>
 
@@ -94,7 +94,7 @@ export default function Doctors() {
         <div className="border-b border-border px-6 py-4 flex items-center gap-3">
           <Stethoscope size={18} className="text-ink-muted" />
           <div>
-            <h3 className="font-semibold text-ink">Medical Staff</h3>
+            <h3 className="font-semibold text-ink">Medical staff</h3>
             <p className="text-xs text-ink-muted">{pageData?.totalElements ?? 0} doctors</p>
           </div>
         </div>
@@ -158,12 +158,19 @@ export default function Doctors() {
                 const d = row as unknown as Doctor
                 return (
                   <div className="flex items-center gap-2 justify-end">
-                    <button onClick={() => openEdit(d)} className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-surface-card text-ink-muted hover:text-primary transition">
-                      <Pencil size={13} />
+                    <button onClick={() => openEdit(d)} aria-label={`Edit ${withDr(d.name)}`}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-surface-card text-ink-muted hover:text-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                      <Pencil size={14} aria-hidden="true" />
                     </button>
-                    <button onClick={() => { if (confirm('Remove doctor?')) deleteMutation.mutate(d.id) }}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-danger-light text-ink-muted hover:text-danger transition">
-                      <Trash2 size={13} />
+                    <button
+                      onClick={() => {
+                        if (confirm(`Remove ${withDr(d.name)}? This can't be undone. Doctors with appointments or visits can't be removed.`)) {
+                          deleteMutation.mutate(d.id)
+                        }
+                      }}
+                      aria-label={`Remove ${withDr(d.name)}`}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-danger-light text-ink-muted hover:text-danger transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                      <Trash2 size={14} aria-hidden="true" />
                     </button>
                   </div>
                 )
@@ -173,14 +180,14 @@ export default function Doctors() {
         />
       </div>
 
-      <Modal open={showModal} onClose={() => setShowModal(false)} title={editing ? 'Edit Doctor' : 'Add Doctor'} size="lg">
+      <Modal open={showModal} onClose={() => setShowModal(false)} title={editing ? 'Edit doctor' : 'Add doctor'} size="lg">
         <form onSubmit={handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Full Name" {...register('name')} placeholder="Dr. Jane Smith" required />
+            <Input label="Full name" {...register('name')} placeholder="Dr. Jane Smith" required />
             <Input label="Specialization" {...register('specialization')} placeholder="Cardiology" />
             <Input label="Phone" {...register('phone')} placeholder="+1 234 567 8900" />
             <Input label="Email" type="email" {...register('email')} placeholder="doctor@hospital.com" />
-            <Input label="License Number" {...register('licenseNumber')} placeholder="LIC-12345" />
+            <Input label="License number" {...register('licenseNumber')} placeholder="LIC-12345" />
             <Select
               label="Department"
               value={deptId}
@@ -210,7 +217,7 @@ export default function Doctors() {
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>Cancel</Button>
             <Button type="submit" loading={saveMutation.isPending}>
-              {editing ? 'Save Changes' : 'Add Doctor'}
+              {editing ? 'Save changes' : 'Add doctor'}
             </Button>
           </div>
         </form>

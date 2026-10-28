@@ -11,6 +11,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, icon, className, id, ...props }, ref) => {
     const autoId = useId()
     const inputId = id ?? autoId
+    const errorId = `${inputId}-error`
     return (
       <div className="flex flex-col gap-1.5">
         {label && <label htmlFor={inputId} className="text-sm font-medium text-ink">{label}</label>}
@@ -29,10 +30,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               error && 'border-danger focus:border-danger focus:ring-danger/20',
               className,
             )}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
             {...props}
           />
         </div>
-        {error && <p className="text-xs text-danger">{error}</p>}
+        {error && <p id={errorId} className="text-xs text-danger-ink">{error}</p>}
       </div>
     )
   },
@@ -48,6 +51,7 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 export function Select({ label, error, options, className, id, ...props }: Readonly<SelectProps>) {
   const autoId = useId()
   const selectId = id ?? autoId
+  const errorId = `${selectId}-error`
   return (
     <div className="flex flex-col gap-1.5">
       {label && <label htmlFor={selectId} className="text-sm font-medium text-ink">{label}</label>}
@@ -58,6 +62,8 @@ export function Select({ label, error, options, className, id, ...props }: Reado
           error && 'border-danger',
           className,
         )}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
         {...props}
       >
         <option value="">Select...</option>
@@ -65,7 +71,7 @@ export function Select({ label, error, options, className, id, ...props }: Reado
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
-      {error && <p className="text-xs text-danger">{error}</p>}
+      {error && <p id={errorId} className="text-xs text-danger-ink">{error}</p>}
     </div>
   )
 }

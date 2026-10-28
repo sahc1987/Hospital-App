@@ -238,7 +238,7 @@ export default function Users() {
       {/* ── Create / Edit Modal ────────────────────────────────────── */}
       {(modal === 'create' || modal === 'edit') && (
         <Modal open onClose={() => { setModal(null); setEditing(null) }}
-          title={modal === 'create' ? 'Create User' : 'Edit User'} size="md">
+          title={modal === 'create' ? 'Add user' : 'Edit user'} size="md">
             {modal === 'create' ? (
               <form onSubmit={createForm.handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
                 <UserFormFields form={createForm} isCreate departments={departments} />
@@ -258,7 +258,7 @@ export default function Users() {
                   <ModalActions
                     onCancel={() => { setModal(null); setEditing(null) }}
                     isPending={updateMutation.isPending}
-                    label="Save Changes"
+                    label="Save changes"
                   />
                 </form>
 

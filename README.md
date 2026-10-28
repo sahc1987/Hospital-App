@@ -472,6 +472,7 @@ Copy `.env.example` to `.env` in the root and fill it in.
 | `JWT_EXPIRATION_MS` | Optional | Access token lifetime (default 24 hours) |
 | `JWT_REFRESH_EXPIRATION_MS` | Optional | Refresh token lifetime (default 7 days) |
 | `VITE_API_URL` | Optional | Where the Vite dev server sends `/api` (default `http://localhost:8080`) |
+| `VITE_DEMO` | Optional | `true` shows the seeded demo credentials on the login page (default `true` in Docker). Set `false` for a real deployment |
 | `TZ` | Optional | The hospital's time zone. It sets "today", working hours, and "in the past" for bookings (default `America/New_York`) |
 
 The browser always calls the API on its own address (`/api`): Nginx forwards it in Docker and Vite in development. That keeps the sign-in cookies first-party.

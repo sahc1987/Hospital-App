@@ -56,7 +56,7 @@ export default function Employees() {
             placeholder="Search employees..." className="input pl-9" />
         </div>
         <Button onClick={() => { reset(); setDeptId(''); setShowModal(true) }} icon={<Plus size={15} />}>
-          Add Employee
+          Add employee
         </Button>
       </div>
 
@@ -118,7 +118,7 @@ export default function Employees() {
         />
       </div>
 
-      <Modal open={showModal} onClose={() => setShowModal(false)} title="Add Employee" size="lg">
+      <Modal open={showModal} onClose={() => setShowModal(false)} title="Add employee" size="lg">
         <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Input label="Full Name" {...register('name')} placeholder="John Smith" required />
@@ -132,7 +132,7 @@ export default function Employees() {
           <Input label="Address" {...register('address')} placeholder="Street, City, Country" />
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button type="submit" loading={createMutation.isPending}>Add Employee</Button>
+            <Button type="submit" loading={createMutation.isPending}>Add employee</Button>
           </div>
         </form>
       </Modal>
