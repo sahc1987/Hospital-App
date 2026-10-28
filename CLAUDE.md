@@ -111,8 +111,9 @@ The frontend fetches the matrix from `GET /api/permissions` in `DashboardLayout`
   - `permissionsStore` holds the access matrix.
 - Path alias: `@/` → `frontend/src/`.
 - **Theme:** the palette lives in `tailwind.config.js`. The old token names are kept but now hold periwinkle values: `primary`, `surface-card` (the lavender canvas), `surface-dark` (deep indigo) and `card-dark` (the blue card). Pages re-skin through those names, so don't hard-code hex values in components.
-  - Recharts props are the exception, because they need literal colours. `HEX` in `pages/Dashboard.tsx` mirrors the tokens.
+  - Recharts props are the exception, because they need literal colours; mirror the tokens there.
   - Text on `*-light` tints uses `*-ink` (for example `text-warning-ink`) to stay above 4.5:1 contrast.
   - White text on the sidebar rail needs `primary-600` or darker.
-- `index.css` styles the native `<progress>` element in two forms: `progress.bar` (set `--fill`) and `progress.ring` (set `--value` inline, 0–100). Use these instead of `div`-based bars.
+- **Dashboard:** the hero is the clinic board (one lane per doctor on a time axis, from `/appointments/today`). Board status colours use `mint-bright`/`mint-deep` and `warning-bright`/`warning-deep`; never tell statuses apart by hue alone.
+- **Font:** Atkinson Hyperlegible Next (Google Fonts, `index.html`), chosen for legibility on screens left open all shift.
 - Nginx sets a strict CSP (`script-src 'self'`, `connect-src 'self'`). Inline scripts and third-party origins (other than Google Fonts) will be blocked in Docker but not in `npm run dev`.

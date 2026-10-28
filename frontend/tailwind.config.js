@@ -39,16 +39,16 @@ export default {
         },
         // Chart / tint accents from the reference: coral, mint, pink
         coral: { DEFAULT: '#F26D6D', light: '#FDECEC' },
-        mint:  { DEFAULT: '#1FA98F', light: '#E3F6F1' },
+        mint:  { DEFAULT: '#1FA98F', light: '#E3F6F1', bright: '#5FD3B8', deep: '#06352C' }, // bright/deep: the clinic board
         pink:  { DEFAULT: '#E86BC4', light: '#FCE9F6' },
         // `ink` = text on the matching `light` tint, kept at >= 4.5:1 for badges/pills
         success: { DEFAULT: '#1FA98F', light: '#E3F6F1', ink: '#0F6E5C' },
         danger:  { DEFAULT: '#E5484D', light: '#FDECEC', ink: '#B4262C' },
-        warning: { DEFAULT: '#E89B12', light: '#FEF3DC', ink: '#8A5A00' },
+        warning: { DEFAULT: '#E89B12', light: '#FEF3DC', ink: '#8A5A00', bright: '#F5B83D', deep: '#3D2600' },
         info:    { DEFAULT: '#4C6FDB', light: '#E4EAFB', ink: '#3249A0' },
       },
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['"Atkinson Hyperlegible Next"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         card: '1.25rem',
