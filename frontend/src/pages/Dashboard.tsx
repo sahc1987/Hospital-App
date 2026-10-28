@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { CalendarDays, Pencil, Mail, Clock, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react'
+import { CalendarDays, Clock, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react'
 import { LineChart, Line, ResponsiveContainer } from 'recharts'
 import { format, parseISO } from 'date-fns'
-import { dashboardApi, appointmentApi, authApi } from '@/api/endpoints'
+import { dashboardApi, appointmentApi, authApi, labApi, pharmacyApi, billingApi, payrollApi } from '@/api/endpoints'
 import { useAuthStore } from '@/store/authStore'
 import { canAccess } from '@/utils/permissions'
 import { cn } from '@/utils/cn'
 import { withDr } from '@/utils/names'
-import type { Appointment, UserRole } from '@/types'
+import type { Appointment, DashboardStats, UserRole } from '@/types'
 
 // Recharts needs literal colors; these mirror tailwind tokens coral / mint / primary / pink.
 const HEX = { coral: '#F26D6D', mint: '#1FA98F', primary: '#4C6FDB', pink: '#E86BC4' }
@@ -33,13 +33,6 @@ function greeting(d = new Date()) {
   return h < 18 ? 'Good afternoon' : 'Good evening'
 }
 
-/** "Dr. James Smith" → "Dr. Smith"; "Anna Thompson" → "Anna". */
-function shortName(full?: string) {
-  if (!full) return ''
-  const parts = full.split(' ')
-  return parts[0].startsWith('Dr') ? `${parts[0]} ${parts[parts.length - 1]}` : parts[0]
-}
-
 const signed = (n: number) => (n > 0 ? '+' : '') + n
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -60,11 +53,13 @@ export default function Dashboard() {
     queryKey: ['today-appointments'],
     queryFn: async () => (await appointmentApi.today()).data.data,
   })
+  // Lab, pharmacy and HR can't open Appointments, so its two cards would be noise for them
+  const seesAppointments = !!user?.role && canAccess(user.role as UserRole, '/appointments')
 
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-12 motion-safe:animate-slide-up">
       <div className="space-y-6 xl:col-span-8">
-        <WelcomeBanner name={shortName(user?.fullName ?? user?.username)} />
+        <WelcomeBanner name={user?.fullName ?? user?.username ?? ''} />
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <TrendTile
@@ -88,13 +83,13 @@ export default function Dashboard() {
           <OccupancyCard
             occupied={stats?.occupiedRooms} available={stats?.availableRooms} total={stats?.totalRooms}
           />
-          <AppointmentProgress appointments={today} />
+          {seesAppointments && <AppointmentProgress appointments={today} />}
         </div>
       </div>
 
       <div className="space-y-6 xl:col-span-4">
-        <ProfileCard />
-        <TodaySchedule appointments={today} />
+        <NeedsAttention stats={stats} appointments={today} />
+        {seesAppointments && <TodaySchedule appointments={today} />}
       </div>
     </div>
   )
@@ -149,7 +144,7 @@ function TrendPill({ pct }: { readonly pct: number | null }) {
 function TrendTile({ title, tint, to, value, caption, series, seriesLabel }: {
   readonly title: string
   readonly tint: keyof typeof tints
-  /** Drill-down route; the whole tile becomes a link when the role can open it. */
+  /** Drill-down route: the whole tile links there; roles that can't open it don't get the tile. */
   readonly to: string
   readonly value?: number
   readonly caption: string
@@ -157,15 +152,15 @@ function TrendTile({ title, tint, to, value, caption, series, seriesLabel }: {
   readonly seriesLabel: string
 }) {
   const role = useAuthStore((s) => s.user?.role) as UserRole | undefined
-  const linked = !!role && canAccess(role, to)
   const t = tints[tint]
   const pct = series ? trendPct(series) : null
   const data = (series ?? []).map((v, i) => ({ i, v }))
   const last = data.length - 1
+  if (!role || !canAccess(role, to)) return null // a number the role can't act on is noise
 
   return (
     <section
-      className={cn('card relative flex items-center gap-4 p-5', linked && 'transition-shadow hover:shadow-card-hover focus-within:ring-2 focus-within:ring-primary/50')}
+      className="card relative flex items-center gap-4 p-5 transition-shadow hover:shadow-card-hover focus-within:ring-2 focus-within:ring-primary/50"
       aria-label={title}
     >
       <div className={cn('h-20 w-20 shrink-0 rounded-xl px-1.5 py-3', t.box)}>
@@ -187,12 +182,10 @@ function TrendTile({ title, tint, to, value, caption, series, seriesLabel }: {
       </div>
       <div className="min-w-0">
         <h2 className={cardTitle}>
-          {linked ? (
-            // Stretched link: the ::after covers the whole card, so the tile is one big target
-            <Link to={to} className="after:absolute after:inset-0 after:rounded-card focus-visible:outline-none">
-              {title}<span className="sr-only">, open {title.toLowerCase()}</span>
-            </Link>
-          ) : title}
+          {/* Stretched link: the ::after covers the whole card, so the tile is one big target */}
+          <Link to={to} className="after:absolute after:inset-0 after:rounded-card focus-visible:outline-none">
+            {title}<span className="sr-only">, open {title.toLowerCase()}</span>
+          </Link>
         </h2>
         <p className="mt-1 text-2xl font-bold text-ink">{value ?? '—'}</p>
         <p className="text-xs text-ink-muted">{caption}</p>
@@ -289,61 +282,87 @@ function AppointmentProgress({ appointments }: { readonly appointments: Appointm
   )
 }
 
-const activeLabel = (active: boolean) => (active ? 'Active' : 'Inactive')
-function staffLabel(type?: string): string {
-  if (type === 'DOCTOR') return 'Doctor'
-  return type ? 'Employee' : 'None'
+type QueueItem = { key: number; label: string; detail: string }
+const usd = (n: number) => `$${Number(n).toLocaleString()}`
+
+/** The 5 oldest items for roles whose work is a list (doctors and nurses have Today's schedule).
+ *  ponytail: oldest = lowest id (default sort) — pass an explicit sort if ids stop tracking dates. */
+const QUEUES: Partial<Record<UserRole, { title: string; to: string; load: () => Promise<QueueItem[]> }>> = {
+  LAB_TECH: { title: 'Oldest pending tests', to: '/lab', load: async () =>
+    (await labApi.list(0, 5, ['ORDERED', 'COLLECTED', 'IN_PROGRESS'])).data.data.content
+      .map((t) => ({ key: t.id, label: t.testName, detail: `${t.patient?.name ?? '—'} · ${t.status.toLowerCase().replace('_', ' ')}` })) },
+  PHARMACIST: { title: 'Low stock', to: '/pharmacy', load: async () =>
+    (await pharmacyApi.lowStock()).data.data.slice(0, 5)
+      .map((i) => ({ key: i.id, label: i.name, detail: `${i.stockQuantity} left · reorder at ${i.reorderLevel}` })) },
+  RECEPTIONIST: { title: 'Oldest unpaid bills', to: '/billing', load: async () =>
+    (await billingApi.list(0, 5, ['PENDING', 'PARTIAL'])).data.data.content
+      .map((b) => ({ key: b.id, label: b.patient?.name ?? '—', detail: `${usd(b.totalAmount - b.paidAmount)} due` })) },
+  HR: { title: 'Unpaid payroll', to: '/payroll', load: async () =>
+    (await payrollApi.list(0, false, 5)).data.data.content
+      .map((p) => ({ key: p.id, label: p.employee?.name ?? '—', detail: `${p.month} · ${usd(p.netSalary)}` })) },
 }
 
-function ProfileCard() {
-  const navigate = useNavigate()
-  const user = useAuthStore((s) => s.user)
-  const { data: me } = useQuery({
-    queryKey: ['me'],
-    queryFn: async () => (await authApi.me()).data.data,
-  })
-  const role = user?.role?.toLowerCase().replace('_', ' ')
-  const facts = [
-    { label: 'Member since', value: me?.createdAt ? format(parseISO(me.createdAt), 'MMM yyyy') : '—' },
-    { label: 'Status',       value: me ? activeLabel(me.active) : '—' },
-    { label: 'Staff record', value: me ? staffLabel(me.linkedStaff?.type) : '—' },
-  ]
+/** Per-role "what's waiting on me": counts from data the page already loads, each linking to its page,
+ *  plus the role's oldest items when its work is a list (QUEUES). */
+function NeedsAttention({ stats, appointments }: {
+  readonly stats?: DashboardStats; readonly appointments: Appointment[]
+}) {
+  const role = useAuthStore((s) => s.user?.role) as UserRole | undefined
+  const { data: me } = useQuery({ queryKey: ['me'], queryFn: async () => (await authApi.me()).data.data })
+  const ownDoctorId = me?.linkedStaff?.type === 'DOCTOR' ? me.linkedStaff.id : undefined
+  // A doctor's queue is their own diary; everyone else sees the whole hospital's
+  const mine = role === 'DOCTOR' ? appointments.filter((a) => a.doctor?.id === ownDoctorId) : appointments
+  const count = (...s: Appointment['status'][]) => mine.filter((a) => s.includes(a.status)).length
+
+  const rows = [
+    { label: role === 'DOCTOR' ? 'Your patients waiting' : 'Patients waiting', value: count('CHECKED_IN'), to: '/appointments' },
+    { label: 'Still to arrive today', value: count('SCHEDULED', 'CONFIRMED'), to: '/appointments' },
+    { label: 'Lab tests pending',     value: stats?.pendingLabTests,   to: '/lab' },
+    { label: 'Low-stock items',       value: stats?.lowStockItems,     to: '/pharmacy' },
+    { label: 'Unpaid bills',          value: stats?.pendingBills,      to: '/billing' },
+    { label: 'Inpatients',            value: stats?.currentAdmissions, to: '/admissions' },
+    { label: 'Unpaid payroll',        value: stats?.unpaidPayroll,     to: '/payroll' },
+  ].filter((r) => role && canAccess(role, r.to))
+  const queue = role && QUEUES[role] && canAccess(role, QUEUES[role].to) ? QUEUES[role] : undefined
+  const { data: items } = useQuery({ enabled: !!queue, queryKey: ['work-queue', role], queryFn: () => queue!.load() })
 
   return (
-    <section className="card overflow-hidden p-0" aria-labelledby="profile-title">
+    <section className="card overflow-hidden p-0" aria-labelledby="attention-title">
       <div className="card-band">
-        <h2 id="profile-title">My profile</h2>
-        <button
-          onClick={() => navigate('/profile')}
-          aria-label="Edit profile"
-          className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-        >
-          <Pencil size={14} aria-hidden="true" />
-        </button>
+        <h2 id="attention-title">Needs attention</h2>
       </div>
-      <div className="p-5">
-        <div className="flex items-center gap-4">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary-50 text-2xl font-bold text-primary-700 ring-4 ring-primary-100" aria-hidden="true">
-            {user?.fullName?.charAt(0) ?? 'U'}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-lg font-bold text-ink">{user?.fullName ?? user?.username}</p>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">{role}</p>
-            <p className="mt-1 flex items-center gap-1.5 truncate text-sm text-ink-muted">
-              <Mail size={13} className="shrink-0 text-primary" aria-hidden="true" />
-              <span className="truncate">{user?.email}</span>
-            </p>
-          </div>
-        </div>
-        <dl className="mt-5 grid grid-cols-3 divide-x divide-border border-t border-border pt-4 text-center">
-          {facts.map((f) => (
-            <div key={f.label} className="px-2">
-              <dt className="text-[11px] text-ink-muted">{f.label}</dt>
-              <dd className="mt-1 text-sm font-bold text-ink">{f.value}</dd>
-            </div>
+      {rows.length === 0 ? (
+        <p className="px-5 py-8 text-center text-sm text-ink-muted">Nothing is waiting on you right now.</p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {rows.map((r) => (
+            <li key={r.label}>
+              <Link to={r.to}
+                className="flex items-center justify-between gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50">
+                <span className="text-ink">{r.label}</span>
+                <span className={cn('flex items-center gap-1 tabular-nums', r.value ? 'text-lg font-bold text-ink' : 'text-ink-muted')}>
+                  {r.value ?? '—'}
+                  <ArrowUpRight size={14} className="text-ink-subtle" aria-hidden="true" />
+                </span>
+              </Link>
+            </li>
           ))}
-        </dl>
-      </div>
+        </ul>
+      )}
+      {queue && (
+        <div className="border-t border-border px-5 pb-4 pt-3">
+          <h3 className={cardTitle}>{queue.title}</h3>
+          {items?.length === 0 && <p className="mt-2 text-sm text-ink-muted">All clear.</p>}
+          <ul className="mt-2 space-y-2">
+            {items?.map((i) => (
+              <li key={i.key} className="text-sm">
+                <p className="truncate font-medium text-ink">{i.label}</p>
+                <p className="truncate text-xs text-ink-muted">{i.detail}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   )
 }

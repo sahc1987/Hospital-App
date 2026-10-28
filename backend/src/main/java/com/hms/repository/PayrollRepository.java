@@ -16,4 +16,7 @@ public interface PayrollRepository extends JpaRepository<Payroll, Long> {
     @EntityGraph(attributePaths = {"employee"})
     Page<Payroll> findByEmployeeId(Long employeeId, Pageable pageable);
     Optional<Payroll> findByEmployeeIdAndMonth(Long employeeId, String month);
+    long countByPaidFalse();
+    @EntityGraph(attributePaths = {"employee"})
+    Page<Payroll> findByPaid(boolean paid, Pageable pageable);
 }

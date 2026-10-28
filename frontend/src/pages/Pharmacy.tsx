@@ -72,7 +72,7 @@ export default function Pharmacy() {
         <div className="relative flex-1 max-w-xs">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-subtle" />
           <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }}
-            placeholder="Search medications..." className="input pl-9" />
+            placeholder="Search medications…" aria-label="Search medications" className="input pl-9" />
         </div>
         <Button onClick={() => setShowModal(true)} icon={<Plus size={15} />}>Add item</Button>
       </div>
@@ -139,7 +139,7 @@ export default function Pharmacy() {
       </div>
 
       {/* Add item modal */}
-      <Modal open={showModal} onClose={() => setShowModal(false)} title="Add Pharmacy Item" size="md">
+      <Modal open={showModal} onClose={() => setShowModal(false)} title="Add pharmacy item" size="md">
         <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Input label="Name" {...register('name')} placeholder="Paracetamol 500mg" required />

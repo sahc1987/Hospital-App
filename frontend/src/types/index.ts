@@ -249,6 +249,7 @@ export interface DashboardStats {
   monthlyRevenue: number
   totalDoctors: number
   totalEmployees: number
+  unpaidPayroll: number
 }
 
 /** Daily counts for the last 7 days, oldest first; arrays align with `days` (ISO dates). */

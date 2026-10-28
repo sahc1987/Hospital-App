@@ -194,8 +194,8 @@ export default function Users() {
           onClick={() => { createForm.reset({ hireDate: new Date().toISOString().split('T')[0] }); setModal('create') }}
           className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 transition-colors"
         >
-          <Plus size={16} />
-          New User
+          <Plus size={16} aria-hidden="true" />
+          Add user
         </button>
       </div>
 
@@ -206,6 +206,7 @@ export default function Users() {
           value={q}
           onChange={(e) => { setQ(e.target.value); setPage(0) }}
           placeholder="Search by name or username…"
+          aria-label="Search users"
           className="w-full rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none"
         />
       </div>
@@ -341,7 +342,7 @@ export default function Users() {
 
       {/* ── Delete Confirm ─────────────────────────────────────────── */}
       {deleteTarget && (
-        <Modal open onClose={() => setDeleteTarget(null)} title="Delete User" size="sm">
+        <Modal open onClose={() => setDeleteTarget(null)} title="Delete user" size="sm">
             <p className="mb-6 text-sm text-ink-subtle">
               Are you sure you want to delete{' '}
               <strong className="text-ink">{deleteTarget.fullName}</strong>?

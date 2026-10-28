@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collection;
 
 public interface BillRepository extends JpaRepository<Bill, Long> {
     // Lazy relations serialize as null unless fetched; list views need the patient name
@@ -19,7 +20,8 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
 
     @EntityGraph(attributePaths = {"patient"})
     Page<Bill> findByPatientId(Long patientId, Pageable pageable);
-    Page<Bill> findByStatus(BillStatus status, Pageable pageable);
+    @EntityGraph(attributePaths = {"patient"})
+    Page<Bill> findByStatusIn(Collection<BillStatus> statuses, Pageable pageable);
 
     @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Bill b WHERE b.billDate BETWEEN :start AND :end")
     BigDecimal sumRevenueByDateRange(LocalDateTime start, LocalDateTime end);

@@ -3,6 +3,7 @@ package com.hms.controller;
 import com.hms.dto.ApiResponse;
 import com.hms.dto.billing.BillRequest;
 import com.hms.entity.Bill;
+import com.hms.entity.enums.BillStatus;
 import com.hms.service.BillingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/bills")
@@ -24,8 +26,9 @@ public class BillingController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<Bill>>> list(
+            @RequestParam(required = false) List<BillStatus> status,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(service.findAll(pageable)));
+        return ResponseEntity.ok(ApiResponse.ok(service.findAll(status, pageable)));
     }
 
     @GetMapping("/{id}")

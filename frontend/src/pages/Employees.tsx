@@ -53,7 +53,7 @@ export default function Employees() {
         <div className="relative flex-1 max-w-xs">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-subtle" />
           <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }}
-            placeholder="Search employees..." className="input pl-9" />
+            placeholder="Search employees…" aria-label="Search employees" className="input pl-9" />
         </div>
         <Button onClick={() => { reset(); setDeptId(''); setShowModal(true) }} icon={<Plus size={15} />}>
           Add employee

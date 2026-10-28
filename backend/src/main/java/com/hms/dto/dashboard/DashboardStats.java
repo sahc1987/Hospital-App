@@ -14,5 +14,6 @@ public record DashboardStats(
         long pendingBills,
         BigDecimal monthlyRevenue,
         long totalDoctors,
-        long totalEmployees
+        long totalEmployees,
+        long unpaidPayroll
 ) {}

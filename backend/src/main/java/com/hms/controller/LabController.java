@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/lab")
 @RequiredArgsConstructor
@@ -23,8 +25,10 @@ public class LabController {
     private final LabTestService service;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<LabTest>>> list(@PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(service.findAll(pageable)));
+    public ResponseEntity<ApiResponse<Page<LabTest>>> list(
+            @RequestParam(required = false) List<LabTestStatus> status,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.ok(service.findAll(status, pageable)));
     }
 
     @GetMapping("/{id}")

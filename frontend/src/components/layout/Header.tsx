@@ -8,6 +8,7 @@ import { cn } from '@/utils/cn'
 import { canAccess } from '@/utils/permissions'
 import type { UserRole } from '@/types'
 import { formatDistanceToNow } from 'date-fns'
+import toast from 'react-hot-toast'
 
 const routeTitles: Record<string, { title: string; subtitle: string }> = {
   '/':              { title: 'Dashboard',           subtitle: 'Overview of hospital operations' },
@@ -165,7 +166,19 @@ export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
                   )}
                   {items.length > 0 && (
                     <button
-                      onClick={clear}
+                      onClick={() => {
+                        const prev = items
+                        clear()
+                        toast((t) => (
+                          <span className="flex items-center gap-3 text-sm">
+                            Notifications cleared
+                            <button className="font-semibold text-primary underline"
+                              onClick={() => { useNotificationsStore.setState({ items: prev }); toast.dismiss(t.id) }}>
+                              Undo
+                            </button>
+                          </span>
+                        ))
+                      }}
                       title="Clear all notifications"
                       aria-label="Clear all notifications"
                       className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-subtle hover:bg-danger/10 hover:text-danger transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"

@@ -22,8 +22,9 @@ public class PayrollController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<Payroll>>> list(
+            @RequestParam(required = false) Boolean paid,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(service.findAll(pageable)));
+        return ResponseEntity.ok(ApiResponse.ok(service.findAll(paid, pageable)));
     }
 
     @GetMapping("/employee/{employeeId}")

@@ -6,6 +6,7 @@ import com.hms.exception.ResourceNotFoundException;
 import com.hms.repository.EmployeeRepository;
 import com.hms.repository.PayrollRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,8 +24,8 @@ public class PayrollService {
     private final EmployeeRepository employeeRepo;
 
     @Transactional(readOnly = true)
-    public Page<Payroll> findAll(Pageable pageable) {
-        return payrollRepo.findAll(pageable);
+    public Page<Payroll> findAll(Boolean paid, Pageable pageable) {
+        return paid == null ? payrollRepo.findAll(pageable) : payrollRepo.findByPaid(paid, pageable);
     }
 
     @Transactional(readOnly = true)
@@ -33,6 +34,7 @@ public class PayrollService {
     }
 
     @Transactional
+    @CacheEvict(value = "dashboard", allEntries = true)
     public Payroll generate(Long employeeId, String rawMonth, BigDecimal basicSalary) {
         if (basicSalary.signum() <= 0) throw new BadRequestException("Basic salary must be positive");
         String month;
@@ -59,6 +61,7 @@ public class PayrollService {
     }
 
     @Transactional
+    @CacheEvict(value = "dashboard", allEntries = true)
     public Payroll markPaid(Long id) {
         Payroll payroll = payrollRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payroll", id));

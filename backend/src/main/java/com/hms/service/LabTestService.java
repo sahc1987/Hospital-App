@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -32,8 +33,8 @@ public class LabTestService {
     private final DoctorRepository doctorRepo;
 
     @Transactional(readOnly = true)
-    public Page<LabTest> findAll(Pageable pageable) {
-        return labTestRepo.findAll(pageable);
+    public Page<LabTest> findAll(List<LabTestStatus> status, Pageable pageable) {
+        return status == null || status.isEmpty() ? labTestRepo.findAll(pageable) : labTestRepo.findByStatusIn(status, pageable);
     }
 
     @Transactional(readOnly = true)

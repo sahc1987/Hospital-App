@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -30,8 +31,8 @@ public class BillingService {
     private final AppointmentRepository appointmentRepo;
 
     @Transactional(readOnly = true)
-    public Page<Bill> findAll(Pageable pageable) {
-        return billRepo.findAll(pageable);
+    public Page<Bill> findAll(List<BillStatus> status, Pageable pageable) {
+        return status == null || status.isEmpty() ? billRepo.findAll(pageable) : billRepo.findByStatusIn(status, pageable);
     }
 
     @Transactional(readOnly = true)

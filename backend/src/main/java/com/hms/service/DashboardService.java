@@ -31,6 +31,7 @@ public class DashboardService {
     private final BillRepository billRepo;
     private final DoctorRepository doctorRepo;
     private final EmployeeRepository employeeRepo;
+    private final PayrollRepository payrollRepo;
     private final JdbcTemplate jdbc;
 
     private static final long TREND_DAYS = 7;
@@ -73,12 +74,15 @@ public class DashboardService {
                 roomRepo.countByStatus(RoomStatus.AVAILABLE),
                 roomRepo.countByStatus(RoomStatus.OCCUPIED),
                 roomRepo.count(),
-                labTestRepo.countByStatus(LabTestStatus.ORDERED) + labTestRepo.countByStatus(LabTestStatus.IN_PROGRESS),
+                // COLLECTED counts too: the sample is in, the result isn't
+                labTestRepo.countByStatus(LabTestStatus.ORDERED) + labTestRepo.countByStatus(LabTestStatus.COLLECTED)
+                        + labTestRepo.countByStatus(LabTestStatus.IN_PROGRESS),
                 pharmacyRepo.countLowStock(),
                 billRepo.countByStatus(BillStatus.PENDING),
                 monthRevenue != null ? monthRevenue : BigDecimal.ZERO,
                 doctorRepo.count(),
-                employeeRepo.count()
+                employeeRepo.count(),
+                payrollRepo.countByPaidFalse()
         );
     }
 }

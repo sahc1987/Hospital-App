@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { doctorApi, departmentApi } from '@/api/endpoints'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
-import { Modal } from '@/components/ui/Modal'
+import { Modal, ConfirmDialog } from '@/components/ui/Modal'
 import { Input, Select } from '@/components/ui/Input'
 import toast from 'react-hot-toast'
 import type { Doctor } from '@/types'
@@ -21,6 +21,7 @@ export default function Doctors() {
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Doctor | null>(null)
   const [deptId, setDeptId] = useState('')
+  const [deleting, setDeleting] = useState<Doctor | null>(null)
   const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -56,6 +57,7 @@ export default function Doctors() {
   const deleteMutation = useMutation({
     mutationFn: doctorApi.delete,
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ['doctors'] }); toast.success('Doctor removed') },
+    onSettled: () => setDeleting(null),
   })
 
   function openEdit(d: Doctor) {
@@ -163,11 +165,7 @@ export default function Doctors() {
                       <Pencil size={14} aria-hidden="true" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(`Remove ${withDr(d.name)}? This can't be undone. Doctors with appointments or visits can't be removed.`)) {
-                          deleteMutation.mutate(d.id)
-                        }
-                      }}
+                      onClick={() => setDeleting(d)}
                       aria-label={`Remove ${withDr(d.name)}`}
                       className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-danger-light text-ink-muted hover:text-danger transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
                       <Trash2 size={14} aria-hidden="true" />
@@ -179,6 +177,12 @@ export default function Doctors() {
           ]}
         />
       </div>
+
+      <ConfirmDialog open={!!deleting} title={`Remove ${deleting ? withDr(deleting.name) : 'doctor'}?`} confirmLabel="Remove doctor"
+        pending={deleteMutation.isPending} onClose={() => setDeleting(null)}
+        onConfirm={() => deleting && deleteMutation.mutate(deleting.id)}>
+        <p>This can't be undone. Doctors with appointments or visits can't be removed; their history is kept.</p>
+      </ConfirmDialog>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={editing ? 'Edit doctor' : 'Add doctor'} size="lg">
         <form onSubmit={handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">

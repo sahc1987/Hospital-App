@@ -2,6 +2,7 @@ import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@
 import { Fragment } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/utils/cn'
+import { Button } from './Button'
 
 interface ModalProps {
   open: boolean
@@ -59,5 +60,23 @@ export function Modal({ open, onClose, title, children, size = 'md' }: Readonly<
         </div>
       </Dialog>
     </Transition>
+  )
+}
+
+/** Destructive-action confirmation (replaces window.confirm): names the action on the button, not "OK". */
+export function ConfirmDialog({ open, title, children, confirmLabel, pending, onConfirm, onClose }: Readonly<{
+  open: boolean; title: string; children: React.ReactNode; confirmLabel: string
+  pending?: boolean; onConfirm: () => void; onClose: () => void
+}>) {
+  return (
+    <Modal open={open} onClose={onClose} title={title} size="sm">
+      <div className="space-y-5 text-sm text-ink">
+        {children}
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={onClose}>Go back</Button>
+          <Button variant="danger" loading={pending} onClick={onConfirm}>{confirmLabel}</Button>
+        </div>
+      </div>
+    </Modal>
   )
 }

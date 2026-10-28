@@ -4,7 +4,7 @@ import { Plus, Building2, Pencil, Trash2, ChevronLeft, ChevronRight } from 'luci
 import { useForm } from 'react-hook-form'
 import { departmentApi } from '@/api/endpoints'
 import { Button } from '@/components/ui/Button'
-import { Modal } from '@/components/ui/Modal'
+import { Modal, ConfirmDialog } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import toast from 'react-hot-toast'
 import type { Department } from '@/types'
@@ -13,6 +13,7 @@ export default function Departments() {
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Department | null>(null)
   const [page, setPage] = useState(0)
+  const [deleting, setDeleting] = useState<Department | null>(null)
   const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -38,6 +39,7 @@ export default function Departments() {
   const deleteMutation = useMutation({
     mutationFn: departmentApi.delete,
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ['departments'] }); toast.success('Department deleted') },
+    onSettled: () => setDeleting(null),
   })
 
   const pageData = data?.data?.data
@@ -85,7 +87,7 @@ export default function Departments() {
                   <Pencil size={13} aria-hidden="true" />
                 </button>
                 <button
-                  onClick={() => { if (confirm(`Delete the ${dept.name} department? This can't be undone.`)) deleteMutation.mutate(dept.id) }}
+                  onClick={() => setDeleting(dept)}
                   aria-label={`Delete ${dept.name}`}
                   className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-border text-ink-muted hover:text-danger transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
@@ -120,6 +122,12 @@ export default function Departments() {
           </button>
         </div>
       )}
+
+      <ConfirmDialog open={!!deleting} title={`Delete ${deleting?.name ?? 'department'}?`} confirmLabel="Delete department"
+        pending={deleteMutation.isPending} onClose={() => setDeleting(null)}
+        onConfirm={() => deleting && deleteMutation.mutate(deleting.id)}>
+        <p>This can't be undone.</p>
+      </ConfirmDialog>
 
       <Modal open={showModal} onClose={() => { setShowModal(false); setEditing(null) }}
         title={editing ? 'Edit department' : 'Add department'} size="sm">

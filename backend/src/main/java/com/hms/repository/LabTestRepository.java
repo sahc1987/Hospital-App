@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.lang.NonNull;
 
+import java.util.Collection;
+
 public interface LabTestRepository extends JpaRepository<LabTest, Long> {
     // Lazy relations serialize as null unless fetched; list views show patient + doctor
     @EntityGraph(attributePaths = {"patient", "doctor"})
@@ -15,6 +17,7 @@ public interface LabTestRepository extends JpaRepository<LabTest, Long> {
 
     @EntityGraph(attributePaths = {"patient", "doctor"})
     Page<LabTest> findByPatientId(Long patientId, Pageable pageable);
-    Page<LabTest> findByStatus(LabTestStatus status, Pageable pageable);
+    @EntityGraph(attributePaths = {"patient", "doctor"})
+    Page<LabTest> findByStatusIn(Collection<LabTestStatus> statuses, Pageable pageable);
     long countByStatus(LabTestStatus status);
 }

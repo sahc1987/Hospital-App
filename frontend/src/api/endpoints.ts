@@ -4,6 +4,7 @@ import type {
   Patient, Doctor, Department, Appointment, Room, Admission,
   LabTest, Bill, PharmacyItem, Employee, Payroll, DashboardStats, DashboardTrends, AuthUser, SystemUser,
   AppointmentStatus, AppointmentHistoryEntry, Visit, PastVisit, RxItem, StayRecord, BoardRoom, AdmissionStatus, UserRole,
+  LabTestStatus, BillStatus,
 } from '@/types'
 import { DEFAULT_MATRIX, type PermissionMatrix } from '@/store/permissionsStore'
 
@@ -147,8 +148,8 @@ export const admissionApi = {
 
 // Lab
 export const labApi = {
-  list: (page = 0, size = 20) =>
-    client.get<ApiResponse<PageResponse<LabTest>>>('/lab', { params: { page, size } }),
+  list: (page = 0, size = 20, status?: LabTestStatus[]) =>
+    client.get<ApiResponse<PageResponse<LabTest>>>('/lab', { params: { page, size, status: status?.join(',') } }),
   get: (id: number) => client.get<ApiResponse<LabTest>>(`/lab/${id}`),
   create: (data: Partial<LabTest & { patientId: number; doctorId?: number }>) =>
     client.post<ApiResponse<LabTest>>('/lab', data),
@@ -162,8 +163,8 @@ export const labApi = {
 
 // Billing
 export const billingApi = {
-  list: (page = 0, size = 20) =>
-    client.get<ApiResponse<PageResponse<Bill>>>('/bills', { params: { page, size } }),
+  list: (page = 0, size = 20, status?: BillStatus[]) =>
+    client.get<ApiResponse<PageResponse<Bill>>>('/bills', { params: { page, size, status: status?.join(',') } }),
   get: (id: number) => client.get<ApiResponse<Bill>>(`/bills/${id}`),
   byPatient: (patientId: number) =>
     client.get<ApiResponse<PageResponse<Bill>>>(`/bills/patient/${patientId}`),
@@ -198,7 +199,8 @@ export const employeeApi = {
 
 // Payroll
 export const payrollApi = {
-  list: (page = 0) => client.get<ApiResponse<PageResponse<Payroll>>>('/payroll', { params: { page } }),
+  list: (page = 0, paid?: boolean, size = 20) =>
+    client.get<ApiResponse<PageResponse<Payroll>>>('/payroll', { params: { page, paid, size } }),
   byEmployee: (empId: number) =>
     client.get<ApiResponse<PageResponse<Payroll>>>(`/payroll/employee/${empId}`),
   generate: (employeeId: number, month: string, basicSalary: number) =>

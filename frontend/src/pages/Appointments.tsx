@@ -407,8 +407,19 @@ function WeekView({ doctors, defaultDoctorId, canBook, onBook, onOpen }: {
     }
     return out
   }, [doctor])
-  // ponytail: bookings placed by exact start time; legacy off-grid times don't show here (they do in List)
-  const byStart = new Map((data ?? []).map((a) => [a.appointmentDate.slice(0, 16), a]))
+  // A booking fills every slot it overlaps (off-grid starts and long visits included), so no busy slot looks free.
+  // Bookings outside working hours have no row; they're listed above the grid instead.
+  const cells = new Map<string, { a: Appointment; first: boolean }>()
+  const offHours: Appointment[] = []
+  for (const a of doctor ? data ?? [] : []) {
+    const open = minutes(doctor!.workStart), step = doctor!.slotMinutes
+    const s = minutes(a.appointmentDate.slice(11, 16))
+    if (s < open || s >= minutes(doctor!.workEnd)) { offHours.push(a); continue }
+    for (let m = open + Math.floor((s - open) / step) * step; m < s + a.durationMinutes; m += step) {
+      const key = `${a.appointmentDate.slice(0, 10)}T${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+      if (!cells.has(key)) cells.set(key, { a, first: m <= s })
+    }
+  }
   const now = new Date()
   const works = (d: Date) => !!doctor?.workDays.includes(format(d, 'EEE').toUpperCase())
   const bookable = !!doctor && canBook(doctor.id)
@@ -438,6 +449,19 @@ function WeekView({ doctors, defaultDoctorId, canBook, onBook, onOpen }: {
           Hours {doctor.workStart.slice(0, 5)}–{doctor.workEnd.slice(0, 5)} · {doctor.slotMinutes}-minute slots · {doctor.workDays.split(',').join(', ')}
         </p>
       )}
+      {offHours.length > 0 && (
+        <p className="rounded-xl bg-warning-light px-3 py-2 text-xs text-warning-ink">
+          Outside working hours this week:{' '}
+          {offHours.map((a, i) => (
+            <span key={a.id}>
+              {i > 0 && ', '}
+              <button onClick={() => onOpen(a)} className="font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                {a.patient?.name} {format(parseISO(a.appointmentDate), 'EEE h:mm a')}
+              </button>
+            </span>
+          ))}
+        </p>
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] border-separate border-spacing-1 text-xs">
@@ -459,9 +483,21 @@ function WeekView({ doctors, defaultDoctorId, canBook, onBook, onOpen }: {
                 <th scope="row" className="pr-2 text-right font-normal tabular-nums text-ink-muted">{t}</th>
                 {days.map((d) => {
                   const key = `${format(d, DAY)}T${t}`
-                  const a = byStart.get(key)
+                  const cell = cells.get(key)
                   const start = parseISO(`${key}:00`)
                   if (!works(d)) return <td key={key} className="rounded-lg bg-surface-alt" aria-label="Not working" />
+                  if (cell && !cell.first) {
+                    // Later slot of a longer visit: busy, but the visit opens from its first cell
+                    return (
+                      <td key={key}>
+                        <span className={cn('block rounded-lg px-2 py-1.5 opacity-50', cellTone(cell.a.status))}>
+                          <span aria-hidden="true">⋮</span>
+                          <span className="sr-only">{cell.a.patient?.name}, continued</span>
+                        </span>
+                      </td>
+                    )
+                  }
+                  const a = cell?.a
                   if (a) {
                     return (
                       <td key={key}>
@@ -470,7 +506,7 @@ function WeekView({ doctors, defaultDoctorId, canBook, onBook, onOpen }: {
                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
                             cellTone(a.status))}>
                           {a.patient?.name}
-                          <span className="sr-only">, {format(start, 'EEEE h:mm a')}, {pretty(a.status)}</span>
+                          <span className="sr-only">, {format(parseISO(a.appointmentDate), 'EEEE h:mm a')}, {pretty(a.status)}</span>
                         </button>
                       </td>
                     )

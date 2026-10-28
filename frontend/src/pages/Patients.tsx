@@ -9,7 +9,7 @@ import { isAxiosError } from 'axios'
 import { patientApi, appointmentApi } from '@/api/endpoints'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
-import { Modal } from '@/components/ui/Modal'
+import { Modal, ConfirmDialog } from '@/components/ui/Modal'
 import { Input, Select } from '@/components/ui/Input'
 import { Badge, StatusBadge } from '@/components/ui/Badge'
 import { useAuthStore } from '@/store/authStore'
@@ -76,6 +76,7 @@ export default function Patients() {
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Patient | null>(null)
   const [historyFor, setHistoryFor] = useState<Patient | null>(null)
+  const [deleting, setDeleting] = useState<Patient | null>(null)
   const qc = useQueryClient()
   const navigate = useNavigate()
   const role = useAuthStore((s) => s.user?.role) as UserRole | undefined
@@ -118,6 +119,7 @@ export default function Patients() {
       toast.success('Patient deleted')
     },
     // 409 (patient has history): the interceptor toasts the server's explanation
+    onSettled: () => setDeleting(null),
   })
 
   function openEdit(p: Patient) {
@@ -256,11 +258,7 @@ export default function Patients() {
                       <Pencil size={14} aria-hidden="true" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(`Delete ${p.name}? This can't be undone. Patients with visits, admissions or bills can't be deleted.`)) {
-                          deleteMutation.mutate(p.id)
-                        }
-                      }}
+                      onClick={() => setDeleting(p)}
                       aria-label={`Delete ${p.name}`}
                       className={`${iconBtn} hover:bg-danger-light hover:text-danger`}>
                       <Trash2 size={14} aria-hidden="true" />
@@ -272,6 +270,12 @@ export default function Patients() {
           ]}
         />
       </div>
+
+      <ConfirmDialog open={!!deleting} title={`Delete ${deleting?.name ?? 'patient'}?`} confirmLabel="Delete patient"
+        pending={deleteMutation.isPending} onClose={() => setDeleting(null)}
+        onConfirm={() => deleting && deleteMutation.mutate(deleting.id)}>
+        <p>This can't be undone. Patients with visits, admissions or bills can't be deleted; their history is kept.</p>
+      </ConfirmDialog>
 
       <Modal open={!!historyFor} onClose={() => setHistoryFor(null)}
         title={`Appointments — ${historyFor?.name ?? ''}`} size="xl">
