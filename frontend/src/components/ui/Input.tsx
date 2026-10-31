@@ -17,7 +17,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && <label htmlFor={inputId} className="text-sm font-medium text-ink">{label}</label>}
         <div className="relative">
           {icon && (
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-subtle">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted">
               {icon}
             </span>
           )}
@@ -66,7 +66,8 @@ export function Select({ label, error, options, className, id, ...props }: Reado
         aria-describedby={error ? errorId : undefined}
         {...props}
       >
-        <option value="">Select...</option>
+        {/* Required: the placeholder can't be picked. Optional/filters: it's how you clear the choice. */}
+        <option value="" disabled={props.required}>Select...</option>
         {options.map((o) => (
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}

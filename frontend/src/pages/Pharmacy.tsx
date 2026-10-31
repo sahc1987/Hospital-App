@@ -58,7 +58,7 @@ export default function Pharmacy() {
       {/* Low stock alert */}
       {lowStockItems.length > 0 && (
         <div className="flex items-center gap-3 rounded-xl bg-warning/10 border border-warning/20 px-4 py-3">
-          <AlertTriangle size={16} className="text-warning shrink-0" />
+          <AlertTriangle size={16} className="text-warning-ink shrink-0" />
           <p className="text-sm text-ink">
             <span className="font-semibold">{lowStockItems.length} items</span> below reorder level:&nbsp;
             {lowStockItems.slice(0, 3).map((i) => i.name).join(', ')}
@@ -70,7 +70,7 @@ export default function Pharmacy() {
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3">
         <div className="relative flex-1 max-w-xs">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-subtle" />
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" />
           <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }}
             placeholder="Search medications…" aria-label="Search medications" className="input pl-9" />
         </div>
@@ -114,7 +114,7 @@ export default function Pharmacy() {
                 const p = row as unknown as PharmacyItem
                 const low = p.stockQuantity <= p.reorderLevel
                 return (
-                  <span className={`font-semibold ${low ? 'text-danger' : 'text-success'}`}>
+                  <span className={`font-semibold ${low ? 'text-danger' : 'text-success-ink'}`}>
                     {p.stockQuantity}
                     {low && <AlertTriangle size={12} className="inline ml-1" />}
                   </span>

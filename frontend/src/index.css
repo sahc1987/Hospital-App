@@ -25,7 +25,8 @@
 @layer components {
   .btn-primary {
     @apply inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white
-           shadow-primary transition-all hover:bg-primary-600 hover:shadow-none active:scale-95 disabled:opacity-50;
+           shadow-primary transition-all hover:bg-primary-600 hover:shadow-none motion-safe:active:scale-95 disabled:opacity-50
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
   }
 
   /* Borderless white surface with soft blue elevation (reference style) */
@@ -43,8 +44,8 @@
   }
 
   .input {
-    @apply w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-ink
-           placeholder:text-ink-subtle outline-none transition
+    @apply w-full rounded-xl border border-border-strong bg-surface px-4 py-2.5 text-sm text-ink
+           placeholder:text-ink-muted outline-none transition
            focus:border-primary focus:ring-2 focus:ring-primary/20;
   }
 

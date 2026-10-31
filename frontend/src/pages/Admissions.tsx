@@ -35,7 +35,7 @@ export default function Admissions() {
           <legend className="sr-only">Stays</legend>
           {([['ADMITTED', 'Current patients'], ['DISCHARGED', 'Discharged']] as const).map(([s, label]) => (
             <button key={s} onClick={() => setStatus(s)} aria-pressed={status === s}
-              className={cn('rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+              className={cn('rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                 status === s ? 'bg-primary text-white' : 'text-ink-muted hover:text-ink')}>
               {label}
             </button>

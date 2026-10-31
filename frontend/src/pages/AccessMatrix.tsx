@@ -10,17 +10,19 @@ import { permissionsApi } from '@/api/endpoints'
 import { usePermissionsStore, DEFAULT_MATRIX, type PermissionMatrix } from '@/store/permissionsStore'
 import type { UserRole } from '@/types'
 import { cn } from '@/utils/cn'
+import { Badge, roleTone } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
-const ROLES: { id: UserRole; label: string; color: string; bg: string }[] = [
-  { id: 'ADMIN',        label: 'Admin',        color: 'text-red-400',    bg: 'bg-red-500/10 border-red-500/20' },
-  { id: 'DOCTOR',       label: 'Doctor',       color: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/20' },
-  { id: 'NURSE',        label: 'Nurse',        color: 'text-green-400',  bg: 'bg-green-500/10 border-green-500/20' },
-  { id: 'RECEPTIONIST', label: 'Receptionist', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' },
-  { id: 'LAB_TECH',     label: 'Lab Tech',     color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
-  { id: 'PHARMACIST',   label: 'Pharmacist',   color: 'text-teal-400',   bg: 'bg-teal-500/10 border-teal-500/20' },
-  { id: 'HR',           label: 'HR',           color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20' },
+const ROLES: { id: UserRole; label: string }[] = [
+  { id: 'ADMIN',        label: 'Admin' },
+  { id: 'DOCTOR',       label: 'Doctor' },
+  { id: 'NURSE',        label: 'Nurse' },
+  { id: 'RECEPTIONIST', label: 'Receptionist' },
+  { id: 'LAB_TECH',     label: 'Lab Tech' },
+  { id: 'PHARMACIST',   label: 'Pharmacist' },
+  { id: 'HR',           label: 'HR' },
 ]
 
 const MODULES: { route: string; label: string; icon: React.ElementType; locked?: boolean }[] = [
@@ -99,62 +101,26 @@ export default function AccessMatrix() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-            <ShieldCheck size={20} className="text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold text-ink">Access Matrix</h1>
-            <p className="text-sm text-ink-subtle">Control which modules each role can access</p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
-          {dirty && (
-            <span className="text-xs font-medium text-yellow-400 bg-yellow-400/10 rounded-lg px-2.5 py-1.5 border border-yellow-400/20">
-              Unsaved changes
-            </span>
-          )}
-          <button
-            onClick={resetToDefaults}
-            className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-sm text-ink-subtle hover:bg-surface-alt transition-colors"
-          >
-            <RotateCcw size={14} />
-            Reset defaults
-          </button>
-          {dirty && (
-            <button
-              onClick={discardChanges}
-              className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-sm text-ink-subtle hover:bg-surface-alt transition-colors"
-            >
-              Discard
-            </button>
-          )}
-          <button
-            onClick={() => saveMutation.mutate()}
-            disabled={!dirty || saveMutation.isPending}
-            className={cn(
-              'flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-colors',
-              dirty
-                ? 'bg-primary text-white hover:bg-primary/90'
-                : 'bg-surface-alt text-ink-subtle cursor-not-allowed',
-            )}
-          >
-            <Save size={14} />
-            {saveMutation.isPending ? 'Saving…' : 'Save changes'}
-          </button>
-        </div>
+      {/* Actions (the page title lives in Header) */}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {dirty && <Badge variant="warning">Unsaved changes</Badge>}
+        <Button variant="secondary" onClick={resetToDefaults} icon={<RotateCcw size={14} aria-hidden="true" />}>
+          Reset defaults
+        </Button>
+        {dirty && <Button variant="ghost" onClick={discardChanges}>Discard</Button>}
+        <Button onClick={() => saveMutation.mutate()} disabled={!dirty} loading={saveMutation.isPending}
+          icon={<Save size={14} aria-hidden="true" />}>
+          Save changes
+        </Button>
       </div>
 
       {/* Role summary cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         {ROLES.map((role) => (
-          <div key={role.id} className={cn('rounded-xl border p-3 text-center', role.bg)}>
-            <p className={cn('text-sm font-semibold', role.color)}>{role.label}</p>
+          <div key={role.id} className={cn('rounded-xl p-3 text-center', roleTone[role.id])}>
+            <p className="text-sm font-semibold">{role.label}</p>
             <p className="text-xl font-bold text-ink mt-1">{countGranted(draft, role.id)}</p>
-            <p className="text-[11px] text-ink-subtle">modules</p>
+            <p className="text-xs text-ink-muted">modules</p>
           </div>
         ))}
       </div>
@@ -165,10 +131,10 @@ export default function AccessMatrix() {
           <thead>
             <tr className="border-b border-border bg-surface-alt">
               {/* sticky: the module name stays visible while the role columns scroll sideways on phones */}
-              <th className="sticky left-0 z-10 bg-surface-alt px-4 py-3 text-left font-medium text-ink-subtle w-52">Module</th>
+              <th className="sticky left-0 z-10 bg-surface-alt px-4 py-3 text-left font-medium text-ink-muted w-52">Module</th>
               {ROLES.map((role) => (
                 <th key={role.id} className="px-3 py-3 text-center font-medium min-w-[90px]">
-                  <span className={cn('inline-flex rounded-lg px-2 py-0.5 text-xs font-semibold border', role.bg, role.color)}>
+                  <span className={cn('inline-flex rounded-lg px-2 py-0.5 text-xs font-semibold', roleTone[role.id])}>
                     {role.label}
                   </span>
                 </th>
@@ -180,10 +146,10 @@ export default function AccessMatrix() {
               <tr key={route} className="hover:bg-surface-alt/40 transition-colors">
                 <td className="sticky left-0 z-10 bg-surface px-4 py-3">
                   <div className="flex items-center gap-2.5 whitespace-nowrap">
-                    <Icon size={14} className="text-ink-subtle shrink-0" />
+                    <Icon size={14} className="text-ink-muted shrink-0" />
                     <span className="text-ink font-medium">{label}</span>
                     {locked && (
-                      <LockKeyhole size={11} className="text-ink-subtle shrink-0" />
+                      <LockKeyhole size={11} className="text-ink-muted shrink-0" />
                     )}
                   </div>
                 </td>
@@ -200,7 +166,8 @@ export default function AccessMatrix() {
                         aria-pressed={granted}
                         className={cn(
                           'mx-auto flex h-7 w-7 items-center justify-center rounded-lg border transition-all',
-                          cellTone(isLocked, granted, cn(role.bg, role.color)),
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                          cellTone(isLocked, granted, roleTone[role.id]),
                         )}
                       >
                         <CellIcon locked={isLocked} granted={granted} />
@@ -214,8 +181,8 @@ export default function AccessMatrix() {
         </table>
       </div>
 
-      <p className="text-xs text-ink-subtle">
-        <LockKeyhole size={10} className="inline mr-1" />
+      <p className="text-xs text-ink-muted">
+        <LockKeyhole size={10} className="inline mr-1" aria-hidden="true" />
         Locked rows are admin-only and cannot be toggled. Changes take effect immediately for all active sessions after saving.
       </p>
     </div>
@@ -229,7 +196,7 @@ function cellTitle(locked: boolean, granted: boolean): string {
 
 function cellTone(locked: boolean, granted: boolean, roleTone: string): string {
   if (locked) return 'border-border bg-surface-alt opacity-30 cursor-not-allowed'
-  return granted ? cn('border-current cursor-pointer hover:opacity-80', roleTone) : 'border-border bg-surface-alt cursor-pointer hover:border-ink-subtle'
+  return granted ? cn('border-current cursor-pointer hover:opacity-80', roleTone) : 'border-border-strong bg-surface cursor-pointer hover:border-ink'
 }
 
 function CellIcon({ locked, granted }: Readonly<{ locked: boolean; granted: boolean }>) {

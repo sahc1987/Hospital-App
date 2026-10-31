@@ -91,7 +91,7 @@ export function StayPanel({ admission, onClose }: { readonly admission: Admissio
         {([['overview', 'Overview'], ...(clinical ? [['notes', 'Progress notes'], ['vitals', 'Vitals'], ['meds', 'Medications']] : [])] as [Tab, string][])
           .map(([t, label]) => (
             <button key={t} onClick={() => setTab(t)} aria-pressed={tab === t}
-              className={cn('-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+              className={cn('-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                 tab === t ? 'border-primary text-primary-700' : 'border-transparent text-ink-muted hover:text-ink')}>
               {label}
             </button>

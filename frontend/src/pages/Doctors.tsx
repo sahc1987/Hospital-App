@@ -83,7 +83,7 @@ export default function Doctors() {
     <div className="space-y-5 animate-slide-up">
       <div className="flex items-center justify-between gap-3">
         <div className="relative flex-1 max-w-xs">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-subtle" />
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" />
           <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }}
             placeholder="Search doctors…" aria-label="Search doctors" className="input pl-9" />
         </div>
@@ -132,7 +132,7 @@ export default function Doctors() {
                 const d = row as unknown as Doctor
                 return d.department
                   ? <span className="badge bg-primary/10 text-primary">{d.department.name}</span>
-                  : <span className="text-ink-subtle text-sm">—</span>
+                  : <span className="text-ink-muted text-sm">—</span>
               },
             },
             {
@@ -141,8 +141,8 @@ export default function Doctors() {
                 const d = row as unknown as Doctor
                 return (
                   <div className="space-y-0.5">
-                    {d.phone && <div className="flex items-center gap-1.5 text-xs"><Phone size={11} className="text-ink-subtle" />{d.phone}</div>}
-                    {d.email && <div className="flex items-center gap-1.5 text-xs"><Mail size={11} className="text-ink-subtle" />{d.email}</div>}
+                    {d.phone && <div className="flex items-center gap-1.5 text-xs"><Phone size={11} className="text-ink-muted" />{d.phone}</div>}
+                    {d.email && <div className="flex items-center gap-1.5 text-xs"><Mail size={11} className="text-ink-muted" />{d.email}</div>}
                   </div>
                 )
               },
@@ -161,13 +161,13 @@ export default function Doctors() {
                 return (
                   <div className="flex items-center gap-2 justify-end">
                     <button onClick={() => openEdit(d)} aria-label={`Edit ${withDr(d.name)}`}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-surface-card text-ink-muted hover:text-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                      className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-surface-card text-ink-muted hover:text-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                       <Pencil size={14} aria-hidden="true" />
                     </button>
                     <button
                       onClick={() => setDeleting(d)}
                       aria-label={`Remove ${withDr(d.name)}`}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-danger-light text-ink-muted hover:text-danger transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                      className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-danger-light text-ink-muted hover:text-danger transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                       <Trash2 size={14} aria-hidden="true" />
                     </button>
                   </div>

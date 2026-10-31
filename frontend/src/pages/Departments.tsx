@@ -82,14 +82,14 @@ export default function Departments() {
                     setShowModal(true)
                   }}
                   aria-label={`Edit ${dept.name}`}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-border text-ink-muted hover:text-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-border text-ink-muted hover:text-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <Pencil size={13} aria-hidden="true" />
                 </button>
                 <button
                   onClick={() => setDeleting(dept)}
                   aria-label={`Delete ${dept.name}`}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-border text-ink-muted hover:text-danger transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-border text-ink-muted hover:text-danger transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <Trash2 size={13} aria-hidden="true" />
                 </button>

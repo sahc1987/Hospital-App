@@ -28,8 +28,8 @@ export function StatCard({ title, value, icon, trend, dark, accent, className }:
           {trend !== undefined && (
             // white, not green/red: tinted text fails contrast on the blue card
             <div className="flex items-center gap-1 mt-1 text-xs font-medium text-white">
-              {positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-              <span>{Math.abs(trend)}% last month</span>
+              {positive ? <TrendingUp size={12} aria-hidden="true" /> : <TrendingDown size={12} aria-hidden="true" />}
+              <span><span className="sr-only">{positive ? 'Up' : 'Down'} </span>{Math.abs(trend)}% last month</span>
             </div>
           )}
         </div>
@@ -51,9 +51,9 @@ export function StatCard({ title, value, icon, trend, dark, accent, className }:
       <div>
         <p className="text-3xl font-bold text-ink">{value}</p>
         {trend !== undefined && (
-          <div className={cn('flex items-center gap-1 mt-1 text-xs font-medium', positive ? 'text-success' : 'text-danger')}>
-            {positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-            <span>{Math.abs(trend)}% last month</span>
+          <div className={cn('flex items-center gap-1 mt-1 text-xs font-medium', positive ? 'text-success-ink' : 'text-danger-ink')}>
+            {positive ? <TrendingUp size={12} aria-hidden="true" /> : <TrendingDown size={12} aria-hidden="true" />}
+            <span><span className="sr-only">{positive ? 'Up' : 'Down'} </span>{Math.abs(trend)}% last month</span>
           </div>
         )}
       </div>

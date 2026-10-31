@@ -48,7 +48,7 @@ export function SearchSelect<T extends { id: number }>({
             placeholder={placeholder}
             autoComplete="off"
           />
-          <ComboboxButton className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-ink-subtle">
+          <ComboboxButton className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-ink-muted">
             {isFetching
               ? <Loader2 size={15} className="animate-spin" aria-hidden="true" />
               : <ChevronsUpDown size={15} aria-hidden="true" />}

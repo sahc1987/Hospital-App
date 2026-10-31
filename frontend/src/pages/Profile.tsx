@@ -8,6 +8,7 @@ import { authApi } from '@/api/endpoints'
 import { useAuthStore } from '@/store/authStore'
 import { notify } from '@/utils/notify'
 import { cn } from '@/utils/cn'
+import { roleTone } from '@/components/ui/Badge'
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -28,17 +29,6 @@ const passwordSchema = z.object({
 type ProfileForm  = z.infer<typeof profileSchema>
 type PasswordForm = z.infer<typeof passwordSchema>
 
-// ─── Role badge colours ───────────────────────────────────────────────────────
-const ROLE_STYLE: Record<string, string> = {
-  ADMIN:        'bg-red-500/15 text-red-400 border-red-500/20',
-  DOCTOR:       'bg-blue-500/15 text-blue-400 border-blue-500/20',
-  NURSE:        'bg-green-500/15 text-green-400 border-green-500/20',
-  RECEPTIONIST: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
-  LAB_TECH:     'bg-purple-500/15 text-purple-400 border-purple-500/20',
-  PHARMACIST:   'bg-teal-500/15 text-teal-400 border-teal-500/20',
-  HR:           'bg-orange-500/15 text-orange-400 border-orange-500/20',
-}
-
 // ─── Shared field component ───────────────────────────────────────────────────
 
 function strengthLabel(strong: boolean, medium: boolean): string {
@@ -53,21 +43,16 @@ function Field({
   return (
     <div className="space-y-1.5">
       <label className="block space-y-1.5">
-        <span className="text-xs font-medium text-ink-subtle">{label}</span>
+        <span className="text-sm font-medium text-ink">{label}</span>
         {children}
       </label>
-      {error && <p className="text-xs text-danger">{error}</p>}
+      {error && <p className="text-xs text-danger-ink">{error}</p>}
     </div>
   )
 }
 
 function inputCls(hasError = false) {
-  return cn(
-    'w-full rounded-xl border bg-surface-alt px-3 py-2.5 text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 transition-colors',
-    hasError
-      ? 'border-danger focus:ring-danger/20'
-      : 'border-border focus:border-primary focus:ring-primary/15',
-  )
+  return cn('input', hasError && 'border-danger focus:border-danger focus:ring-danger/20')
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -115,7 +100,7 @@ export default function Profile() {
     },
   })
 
-  const roleStyle = ROLE_STYLE[user?.role ?? ''] ?? 'bg-surface-alt text-ink border-border'
+  const roleStyle = roleTone[user?.role ?? ''] ?? 'bg-surface-alt text-ink'
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -127,13 +112,13 @@ export default function Profile() {
         </div>
         <div className="min-w-0">
           <p className="text-lg font-semibold text-ink truncate">{user?.fullName}</p>
-          <p className="text-sm text-ink-subtle">@{user?.username}</p>
+          <p className="text-sm text-ink-muted">@{user?.username}</p>
           <div className="mt-2 flex items-center gap-2 flex-wrap">
-            <span className={cn('inline-flex items-center rounded-lg border px-2.5 py-0.5 text-xs font-semibold', roleStyle)}>
+            <span className={cn('inline-flex items-center rounded-lg px-2.5 py-0.5 text-xs font-semibold', roleStyle)}>
               <ShieldCheck size={11} className="mr-1" />
               {user?.role?.replace('_', ' ')}
             </span>
-            <span className="inline-flex items-center gap-1 text-xs text-ink-subtle">
+            <span className="inline-flex items-center gap-1 text-xs text-ink-muted">
               <Calendar size={11} />
               Member since {new Date().getFullYear()}
             </span>
@@ -144,10 +129,10 @@ export default function Profile() {
       {/* ── Account Information ───────────────────────────────────── */}
       <div className="rounded-2xl border border-border bg-surface overflow-hidden">
         <div className="flex items-center gap-3 border-b border-border px-6 py-4">
-          <User size={16} className="text-ink-subtle" />
+          <User size={16} className="text-ink-muted" />
           <div>
             <p className="text-sm font-semibold text-ink">Account Information</p>
-            <p className="text-xs text-ink-subtle">Update your name and email address</p>
+            <p className="text-xs text-ink-muted">Update your name and email address</p>
           </div>
         </div>
 
@@ -158,14 +143,14 @@ export default function Profile() {
           {/* Read-only username */}
           <Field label="Username">
             <div className="relative">
-              <AtSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
+              <AtSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
               <input
                 value={user?.username ?? ''}
                 readOnly
-                className="w-full rounded-xl border border-border bg-surface px-3 py-2.5 pl-8 text-sm text-ink-subtle cursor-not-allowed"
+                className="w-full rounded-xl border border-border bg-surface px-3 py-2.5 pl-8 text-sm text-ink-muted cursor-not-allowed"
               />
             </div>
-            <p className="text-[11px] text-ink-subtle">Username cannot be changed. Contact an admin if needed.</p>
+            <p className="text-xs text-ink-muted">Username cannot be changed. Contact an admin if needed.</p>
           </Field>
 
           <Field label="Full Name" error={profileForm.formState.errors.fullName?.message}>
@@ -178,7 +163,7 @@ export default function Profile() {
 
           <Field label="Email Address" error={profileForm.formState.errors.email?.message}>
             <div className="relative">
-              <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
+              <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
               <input
                 {...profileForm.register('email')}
                 type="email"
@@ -196,7 +181,7 @@ export default function Profile() {
                 'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors',
                 profileForm.formState.isDirty
                   ? 'bg-primary text-white hover:bg-primary/90'
-                  : 'bg-surface-alt text-ink-subtle cursor-not-allowed',
+                  : 'bg-surface-alt text-ink-muted cursor-not-allowed',
               )}
             >
               <Save size={14} />
@@ -209,10 +194,10 @@ export default function Profile() {
       {/* ── Change Password ───────────────────────────────────────── */}
       <div className="rounded-2xl border border-border bg-surface overflow-hidden">
         <div className="flex items-center gap-3 border-b border-border px-6 py-4">
-          <Lock size={16} className="text-ink-subtle" />
+          <Lock size={16} className="text-ink-muted" />
           <div>
             <p className="text-sm font-semibold text-ink">Change Password</p>
-            <p className="text-xs text-ink-subtle">Choose a strong password of at least 8 characters</p>
+            <p className="text-xs text-ink-muted">Choose a strong password of at least 8 characters</p>
           </div>
         </div>
 
@@ -268,7 +253,7 @@ export default function Profile() {
                     />
                   ))}
                 </div>
-                <p className="text-[11px] text-ink-subtle">
+                <p className="text-xs text-ink-muted">
                   {strengthLabel(strong, medium)}
                 </p>
               </div>

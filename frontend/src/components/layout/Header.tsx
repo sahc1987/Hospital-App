@@ -31,13 +31,13 @@ const routeTitles: Record<string, { title: string; subtitle: string }> = {
 
 const iconBtn =
   'relative flex h-11 w-11 items-center justify-center rounded-2xl bg-surface shadow-card hover:shadow-card-hover transition ' +
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2'
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2'
 
 function NotifIcon({ type }: Readonly<{ type: AppNotification['type'] }>) {
   const cls = 'h-4 w-4 shrink-0'
-  if (type === 'success') return <CheckCircle2 className={cn(cls, 'text-success')} />
-  if (type === 'error')   return <XCircle      className={cn(cls, 'text-danger')} />
-  if (type === 'warning') return <AlertTriangle className={cn(cls, 'text-warning')} />
+  if (type === 'success') return <CheckCircle2 className={cn(cls, 'text-success-ink')} />
+  if (type === 'error')   return <XCircle      className={cn(cls, 'text-danger-ink')} />
+  if (type === 'warning') return <AlertTriangle className={cn(cls, 'text-warning-ink')} />
   return <Info className={cn(cls, 'text-primary')} />
 }
 
@@ -50,6 +50,7 @@ export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
   const [query, setQuery]       = useState('')
   const [bellOpen, setBellOpen] = useState(false)
   const bellRef = useRef<HTMLDivElement>(null)
+  const bellBtnRef = useRef<HTMLButtonElement>(null)
 
   const page       = routeTitles[location.pathname] ?? { title: 'HMS', subtitle: '' }
   const unread     = items.filter((n) => !n.read).length
@@ -64,6 +65,16 @@ export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
+
+  // Esc closes the panel and hands focus back to the bell
+  useEffect(() => {
+    if (!bellOpen) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { setBellOpen(false); bellBtnRef.current?.focus() }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [bellOpen])
 
   const canSearch = !!user && canAccess(user.role as UserRole, '/patients')
 
@@ -111,12 +122,12 @@ export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search patients by name, phone or email…"
             aria-label="Search patients"
-            className="w-full rounded-2xl bg-surface pl-5 pr-12 py-3 text-sm text-ink shadow-card placeholder:text-ink-muted outline-none focus:ring-2 focus:ring-primary/30 transition"
+            className="w-full rounded-2xl bg-surface pl-5 pr-12 py-3 text-sm text-ink shadow-card placeholder:text-ink-muted outline-none focus:ring-2 focus:ring-primary transition"
           />
           <button
             type="submit"
             aria-label="Search"
-            className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-xl text-primary hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-xl text-primary hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <Search size={16} aria-hidden="true" />
           </button>
@@ -129,14 +140,16 @@ export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
         {/* Notification bell */}
         <div ref={bellRef} className="relative">
           <button
+            ref={bellBtnRef}
             onClick={openBell}
             className={iconBtn}
             aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
             aria-expanded={bellOpen}
+            aria-controls="notif-panel"
           >
             <Bell size={17} className="text-primary" aria-hidden="true" />
             {unread > 0 && (
-              <span aria-hidden="true" className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-danger-ink text-[9px] font-bold text-white ring-2 ring-surface">
+              <span aria-hidden="true" className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-danger-ink text-xs font-bold text-white ring-2 ring-surface">
                 {unread > 9 ? '9+' : unread}
               </span>
             )}
@@ -144,13 +157,13 @@ export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
 
           {bellOpen && (
             // Phone: pinned to the screen edges (a 320px panel anchored to the bell would overflow left)
-            <div className="fixed inset-x-4 top-20 sm:absolute sm:inset-x-auto sm:right-0 sm:top-14 z-50 sm:w-80 rounded-card bg-surface shadow-card-hover overflow-hidden">
+            <div id="notif-panel" role="region" aria-label="Notifications" className="fixed inset-x-4 top-20 sm:absolute sm:inset-x-auto sm:right-0 sm:top-14 z-50 sm:w-80 rounded-card bg-surface shadow-card-hover overflow-hidden">
               {/* Bell header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <div>
                   <p className="text-sm font-semibold text-ink">Notifications</p>
                   {unread > 0 && (
-                    <p className="text-[11px] text-ink-subtle">{unread} unread</p>
+                    <p className="text-xs text-ink-muted">{unread} unread</p>
                   )}
                 </div>
                 <div className="flex items-center gap-1">
@@ -159,7 +172,7 @@ export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
                       onClick={markAllRead}
                       title="Mark all as read"
                       aria-label="Mark all as read"
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-subtle hover:bg-surface-alt hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-alt hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <CheckCheck size={14} aria-hidden="true" />
                     </button>
@@ -172,7 +185,7 @@ export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
                         toast((t) => (
                           <span className="flex items-center gap-3 text-sm">
                             Notifications cleared
-                            <button className="font-semibold text-primary underline"
+                            <button className="font-semibold text-primary-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                               onClick={() => { useNotificationsStore.setState({ items: prev }); toast.dismiss(t.id) }}>
                               Undo
                             </button>
@@ -181,7 +194,7 @@ export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
                       }}
                       title="Clear all notifications"
                       aria-label="Clear all notifications"
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-subtle hover:bg-danger/10 hover:text-danger transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted hover:bg-danger/10 hover:text-danger transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <Trash2 size={14} aria-hidden="true" />
                     </button>
@@ -192,8 +205,8 @@ export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
               {/* Notification list */}
               <div className="max-h-80 overflow-y-auto">
                 {items.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-ink-subtle">
-                    <Bell size={24} className="mb-2 opacity-30" />
+                  <div className="flex flex-col items-center justify-center py-10 text-ink-muted">
+                    <Bell size={24} className="mb-2 opacity-30" aria-hidden="true" />
                     <p className="text-sm">No notifications yet</p>
                   </div>
                 ) : (
@@ -203,18 +216,19 @@ export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
                       onClick={() => handleNotifClick(n)}
                       className={cn(
                         'w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt border-b border-border last:border-0',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
                         !n.read && 'bg-primary/5',
                       )}
                     >
                       <NotifIcon type={n.type} />
                       <div className="flex-1 min-w-0">
-                        <p className={cn('text-sm truncate', n.read ? 'text-ink-subtle' : 'text-ink font-medium')}>
+                        <p className={cn('text-sm truncate', n.read ? 'text-ink-muted' : 'text-ink font-medium')}>
                           {n.title}
                         </p>
                         {n.message && (
-                          <p className="text-xs text-ink-subtle truncate mt-0.5">{n.message}</p>
+                          <p className="text-xs text-ink-muted truncate mt-0.5">{n.message}</p>
                         )}
-                        <p className="text-[10px] text-ink-subtle mt-1">
+                        <p className="text-xs text-ink-muted mt-1">
                           {formatDistanceToNow(n.timestamp, { addSuffix: true })}
                         </p>
                       </div>
@@ -232,7 +246,7 @@ export default function Header({ onMenu }: Readonly<{ onMenu: () => void }>) {
         {/* Avatar → profile (the only header route there; the sidebar footer is the other) */}
         <button
           onClick={() => navigate('/profile')}
-          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white font-semibold text-sm shadow-primary hover:bg-primary-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white font-semibold text-sm shadow-primary hover:bg-primary-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           aria-label="My profile"
         >
           {user?.fullName?.charAt(0) ?? 'A'}

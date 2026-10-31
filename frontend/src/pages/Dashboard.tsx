@@ -292,7 +292,7 @@ function Worklist({ stats, trends, appointments }: {
           {rows.map((r) => (
             <li key={r.label} className="border-t border-border">
               <Link to={r.to}
-                className="grid min-h-16 grid-cols-[minmax(0,1fr)_6rem_4.5rem] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50">
+                className="grid min-h-16 grid-cols-[minmax(0,1fr)_6rem_4.5rem] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
                 <span>
                   <span className="block font-semibold text-ink">{r.label}</span>
                   {r.of && <span className="block text-sm text-ink-muted">{trendText(r.of, r.series)}</span>}

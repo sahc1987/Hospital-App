@@ -34,13 +34,14 @@ export default {
           invert:  '#FFFFFF',
         },
         border: {
-          DEFAULT: '#E4E8F5',
+          DEFAULT: '#E4E8F5', // dividers only: 1.2:1, too faint to outline a control
+          strong:  '#868EB0', // form controls: 3.2:1 on white (WCAG 1.4.11)
           dark:    '#3D4E95',
         },
         // Chart / tint accents from the reference: coral, mint, pink
         coral: { DEFAULT: '#F26D6D', light: '#FDECEC' },
         mint:  { DEFAULT: '#1FA98F', light: '#E3F6F1', bright: '#5FD3B8', deep: '#06352C' }, // bright/deep: the clinic board
-        pink:  { DEFAULT: '#E86BC4', light: '#FCE9F6' },
+        pink:  { DEFAULT: '#E86BC4', light: '#FCE9F6', ink: '#9C2378' },
         // `ink` = text on the matching `light` tint, kept at >= 4.5:1 for badges/pills
         success: { DEFAULT: '#1FA98F', light: '#E3F6F1', ink: '#0F6E5C' },
         danger:  { DEFAULT: '#E5484D', light: '#FDECEC', ink: '#B4262C' },

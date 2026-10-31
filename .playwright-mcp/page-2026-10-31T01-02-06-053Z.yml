@@ -1,0 +1,24 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]: HMS
+    - generic [ref=e11]:
+      - heading "Modern Hospital Management System" [level=2] [ref=e12]: Modern HospitalManagementSystem
+      - paragraph [ref=e13]: Appointments, admissions, lab, pharmacy and billing for every team, in one place.
+  - generic [ref=e15]:
+    - heading "Sign in" [level=1] [ref=e16]
+    - paragraph [ref=e17]: Enter your credentials to access the system.
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e20]: Username
+        - textbox "Username" [ref=e21]
+      - generic [ref=e22]:
+        - generic [ref=e23]: Password
+        - generic [ref=e24]:
+          - textbox "Password" [ref=e25]
+          - button "Show password" [ref=e26] [cursor=pointer]
+      - button "Sign in" [ref=e30] [cursor=pointer]
+    - paragraph [ref=e31]:
+      - text: "Demo credentials:"
+      - strong [ref=e32]: admin
+      - text: /
+      - strong [ref=e33]: Admin@123

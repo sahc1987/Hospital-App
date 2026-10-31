@@ -114,7 +114,7 @@ function RoomCard({ b, canAdmit, canMaintain, isAdmin, onAdmit, onOpen, onMainta
           return (
             <li key={o.admission_id}>
               <button onClick={() => onOpen(o.admission_id)}
-                className="flex w-full items-center justify-between gap-2 rounded-lg bg-primary-50 px-3 py-2 text-left text-sm hover:bg-primary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                className="flex w-full items-center justify-between gap-2 rounded-lg bg-primary-50 px-3 py-2 text-left text-sm hover:bg-primary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                 <span className="min-w-0">
                   <span className="flex items-center gap-1.5 truncate font-medium text-primary-800">
                     {o.patient}
@@ -132,7 +132,7 @@ function RoomCard({ b, canAdmit, canMaintain, isAdmin, onAdmit, onOpen, onMainta
           <li key={`bed-${bed}`}>
             {canAdmit ? (
               <button onClick={onAdmit}
-                className="w-full rounded-lg border border-dashed border-primary-200 px-3 py-2 text-left text-sm text-primary-700 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                className="w-full rounded-lg border border-dashed border-primary-200 px-3 py-2 text-left text-sm text-primary-700 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                 + Free bed — admit
               </button>
             ) : <p className="rounded-lg border border-dashed border-border px-3 py-2 text-sm text-ink-muted">Free bed</p>}

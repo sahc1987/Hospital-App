@@ -20,7 +20,7 @@ import { format, parseISO } from 'date-fns'
 
 const reasonText = (a: Appointment) => (a.status === 'CANCELLED' ? 'Cancelled: ' + (a.cancelReason ?? '') : a.reason ?? '—')
 const BOOKERS = new Set<UserRole>(['ADMIN', 'RECEPTIONIST', 'NURSE', 'DOCTOR'])
-const iconBtn = 'flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
+const iconBtn = 'flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
 
 // Empty inputs become undefined, so the API never gets "" for an enum or date
 const optional = <T extends z.ZodTypeAny>(s: T) => z.preprocess((v) => (v === '' ? undefined : v), s.optional())
@@ -144,7 +144,7 @@ export default function Patients() {
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3">
         <div className="relative flex-1 max-w-xs">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-subtle" aria-hidden="true" />
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" aria-hidden="true" />
           <input
             type="search"
             value={search}
@@ -204,7 +204,7 @@ export default function Patients() {
               header: 'Gender',
               render: (row) => {
                 const p = row as unknown as Patient
-                return p.gender ? <Badge>{p.gender}</Badge> : <span className="text-ink-subtle">—</span>
+                return p.gender ? <Badge>{p.gender}</Badge> : <span className="text-ink-muted">—</span>
               },
             },
             {
@@ -214,8 +214,8 @@ export default function Patients() {
                 const p = row as unknown as Patient
                 return (
                   <div className="space-y-0.5">
-                    {p.phone && <div className="flex items-center gap-1.5 text-xs"><Phone size={11} className="text-ink-subtle" aria-hidden="true" />{p.phone}</div>}
-                    {p.email && <div className="flex items-center gap-1.5 text-xs"><Mail size={11} className="text-ink-subtle" aria-hidden="true" />{p.email}</div>}
+                    {p.phone && <div className="flex items-center gap-1.5 text-xs"><Phone size={11} className="text-ink-muted" aria-hidden="true" />{p.phone}</div>}
+                    {p.email && <div className="flex items-center gap-1.5 text-xs"><Mail size={11} className="text-ink-muted" aria-hidden="true" />{p.email}</div>}
                   </div>
                 )
               },

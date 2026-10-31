@@ -26,6 +26,17 @@ export function Badge({ variant = 'default', children, className }: Readonly<Bad
   )
 }
 
+/** Role tints shared by Users, Profile and Access Matrix; every pair clears 4.5:1. */
+export const roleTone: Record<string, string> = {
+  ADMIN:        'bg-danger-light text-danger-ink',
+  DOCTOR:       'bg-info-light text-info-ink',
+  NURSE:        'bg-success-light text-success-ink',
+  RECEPTIONIST: 'bg-warning-light text-warning-ink',
+  LAB_TECH:     'bg-pink-light text-pink-ink',
+  PHARMACIST:   'bg-mint-light text-mint-deep',
+  HR:           'bg-primary-100 text-primary-800', // primary-50 vanishes on the lavender canvas
+}
+
 // Status-specific convenience components
 const statusMap: Record<string, Variant> = {
   SCHEDULED: 'default',  CONFIRMED: 'info',    CHECKED_IN: 'orange',  IN_CONSULTATION: 'warning',  COMPLETED: 'success',

@@ -89,7 +89,7 @@ export default function Billing() {
               key: 'paidAmount', header: 'Paid',
               render: (row) => {
                 const b = row as unknown as Bill
-                return <span className="font-semibold text-success">${b.paidAmount.toLocaleString()}</span>
+                return <span className="font-semibold text-success-ink">${b.paidAmount.toLocaleString()}</span>
               },
             },
             {
@@ -103,7 +103,7 @@ export default function Billing() {
                 const balance = b.totalAmount - b.paidAmount - b.discount
                 return balance > 0
                   ? <span className="font-semibold text-danger">${balance.toLocaleString()}</span>
-                  : <span className="text-ink-subtle">—</span>
+                  : <span className="text-ink-muted">—</span>
               },
             },
           ]}

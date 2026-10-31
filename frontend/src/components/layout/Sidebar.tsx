@@ -149,7 +149,7 @@ export default function Sidebar({ mobile = false, onClose }: Readonly<{ mobile?:
         {wide && (
           <div className="leading-tight">
             <p className="text-lg font-bold">HMS</p>
-            <p className="text-[11px] text-white/85">Hospital System</p>
+            <p className="text-xs text-white/85">Hospital System</p>
           </div>
         )}
       </div>
@@ -163,7 +163,7 @@ export default function Sidebar({ mobile = false, onClose }: Readonly<{ mobile?:
         {visibleGroups.map((group, gi) => (
           <div key={group.label} className={gi > 0 ? 'mt-3' : ''}>
             {wide ? (
-              <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/85">
+              <p className="px-3 mb-1.5 text-xs font-semibold uppercase tracking-widest text-white/85">
                 {group.label}
               </p>
             ) : (
@@ -212,7 +212,7 @@ export default function Sidebar({ mobile = false, onClose }: Readonly<{ mobile?:
           </span>
           <span className={wide ? 'min-w-0' : 'sr-only'}>
             <span className="block text-sm font-medium truncate">{user?.fullName ?? user?.username}</span>
-            <span className="block text-[11px] text-white/85 capitalize">{user?.role?.toLowerCase().replace('_', ' ')}</span>
+            <span className="block text-xs text-white/85 capitalize">{user?.role?.toLowerCase().replace('_', ' ')}</span>
             <span className="sr-only">, open profile</span>
           </span>
         </button>

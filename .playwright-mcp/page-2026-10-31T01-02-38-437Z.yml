@@ -1,0 +1,373 @@
+- generic [ref=f2e3]:
+  - complementary [ref=f2e5]:
+    - generic [ref=f2e11]:
+      - paragraph [ref=f2e12]: HMS
+      - paragraph [ref=f2e13]: Hospital System
+    - button "Collapse menu" [expanded] [ref=f2e14] [cursor=pointer]
+    - navigation "Main" [ref=f2e19]:
+      - generic [ref=f2e20]:
+        - paragraph [ref=f2e21]: Overview
+        - list [ref=f2e22]:
+          - listitem [ref=f2e23]:
+            - link "Dashboard" [ref=f2e24] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=f2e31]:
+            - link "Reports & Analytics" [ref=f2e32] [cursor=pointer]:
+              - /url: /reports
+      - generic [ref=f2e36]:
+        - paragraph [ref=f2e37]: Clinical
+        - list [ref=f2e38]:
+          - listitem [ref=f2e39]:
+            - link "Patients" [ref=f2e40] [cursor=pointer]:
+              - /url: /patients
+          - listitem [ref=f2e47]:
+            - link "Appointments" [ref=f2e48] [cursor=pointer]:
+              - /url: /appointments
+          - listitem [ref=f2e52]:
+            - link "Admissions" [ref=f2e53] [cursor=pointer]:
+              - /url: /admissions
+          - listitem [ref=f2e58]:
+            - link "Doctors" [ref=f2e59] [cursor=pointer]:
+              - /url: /doctors
+          - listitem [ref=f2e65]:
+            - link "Departments" [ref=f2e66] [cursor=pointer]:
+              - /url: /departments
+      - generic [ref=f2e72]:
+        - paragraph [ref=f2e73]: Operations
+        - list [ref=f2e74]:
+          - listitem [ref=f2e75]:
+            - link "Laboratory" [ref=f2e76] [cursor=pointer]:
+              - /url: /lab
+          - listitem [ref=f2e80]:
+            - link "Pharmacy" [ref=f2e81] [cursor=pointer]:
+              - /url: /pharmacy
+          - listitem [ref=f2e86]:
+            - link "Rooms" [ref=f2e87] [cursor=pointer]:
+              - /url: /rooms
+          - listitem [ref=f2e92]:
+            - link "Billing" [ref=f2e93] [cursor=pointer]:
+              - /url: /billing
+      - generic [ref=f2e98]:
+        - paragraph [ref=f2e99]: HR
+        - list [ref=f2e100]:
+          - listitem [ref=f2e101]:
+            - link "Employees" [ref=f2e102] [cursor=pointer]:
+              - /url: /employees
+          - listitem [ref=f2e116]:
+            - link "Payroll" [ref=f2e117] [cursor=pointer]:
+              - /url: /payroll
+      - generic [ref=f2e122]:
+        - paragraph [ref=f2e123]: Administration
+        - list [ref=f2e124]:
+          - listitem [ref=f2e125]:
+            - link "User Management" [ref=f2e126] [cursor=pointer]:
+              - /url: /users
+          - listitem [ref=f2e131]:
+            - link "Access Matrix" [ref=f2e132] [cursor=pointer]:
+              - /url: /access-matrix
+    - generic [ref=f2e137]:
+      - button "System Administrator admin , open profile" [ref=f2e138] [cursor=pointer]:
+        - generic [aria-hidden] [ref=f2e139]: S
+        - generic [ref=f2e140]:
+          - generic [ref=f2e141]: System Administrator
+          - generic [ref=f2e142]: admin
+          - generic [ref=f2e143]: ", open profile"
+      - button "Log out" [ref=f2e144] [cursor=pointer]
+  - generic [ref=f2e149]:
+    - banner [ref=f2e150]:
+      - generic [ref=f2e151]:
+        - heading "Access Matrix" [level=1] [ref=f2e152]
+        - paragraph [ref=f2e153]: Role-based access control
+      - search [ref=f2e154]:
+        - searchbox "Search patients" [ref=f2e155]
+        - button "Search" [ref=f2e156] [cursor=pointer]
+      - generic [ref=f2e160]:
+        - button "Notifications" [ref=f2e162] [cursor=pointer]
+        - button "My profile" [ref=f2e166] [cursor=pointer]: S
+    - main [ref=f2e167]:
+      - generic [ref=f2e168]:
+        - generic [ref=f2e169]:
+          - button "Reset defaults" [ref=f2e170] [cursor=pointer]
+          - button "Save changes" [disabled] [ref=f2e174]
+        - generic [ref=f2e179]:
+          - generic [ref=f2e180]:
+            - paragraph [ref=f2e181]: Admin
+            - paragraph [ref=f2e182]: "15"
+            - paragraph [ref=f2e183]: modules
+          - generic [ref=f2e184]:
+            - paragraph [ref=f2e185]: Doctor
+            - paragraph [ref=f2e186]: "10"
+            - paragraph [ref=f2e187]: modules
+          - generic [ref=f2e188]:
+            - paragraph [ref=f2e189]: Nurse
+            - paragraph [ref=f2e190]: "9"
+            - paragraph [ref=f2e191]: modules
+          - generic [ref=f2e192]:
+            - paragraph [ref=f2e193]: Receptionist
+            - paragraph [ref=f2e194]: "8"
+            - paragraph [ref=f2e195]: modules
+          - generic [ref=f2e196]:
+            - paragraph [ref=f2e197]: Lab Tech
+            - paragraph [ref=f2e198]: "3"
+            - paragraph [ref=f2e199]: modules
+          - generic [ref=f2e200]:
+            - paragraph [ref=f2e201]: Pharmacist
+            - paragraph [ref=f2e202]: "3"
+            - paragraph [ref=f2e203]: modules
+          - generic [ref=f2e204]:
+            - paragraph [ref=f2e205]: HR
+            - paragraph [ref=f2e206]: "6"
+            - paragraph [ref=f2e207]: modules
+        - table [ref=f2e209]:
+          - rowgroup [ref=f2e210]:
+            - row [ref=f2e211]:
+              - columnheader "Module" [ref=f2e212]
+              - columnheader "Admin" [ref=f2e213]
+              - columnheader "Doctor" [ref=f2e215]
+              - columnheader "Nurse" [ref=f2e217]
+              - columnheader "Receptionist" [ref=f2e219]
+              - columnheader "Lab Tech" [ref=f2e221]
+              - columnheader "Pharmacist" [ref=f2e223]
+              - columnheader "HR" [ref=f2e225]
+          - rowgroup [ref=f2e227]:
+            - row [ref=f2e228]:
+              - cell "Dashboard" [ref=f2e229]
+              - cell [ref=f2e237]:
+                - 'button "Revoke access: ADMIN, Dashboard" [pressed] [ref=f2e238] [cursor=pointer]'
+              - cell [ref=f2e241]:
+                - 'button "Revoke access: DOCTOR, Dashboard" [pressed] [ref=f2e242] [cursor=pointer]'
+              - cell [ref=f2e245]:
+                - 'button "Revoke access: NURSE, Dashboard" [pressed] [ref=f2e246] [cursor=pointer]'
+              - cell [ref=f2e249]:
+                - 'button "Revoke access: RECEPTIONIST, Dashboard" [pressed] [ref=f2e250] [cursor=pointer]'
+              - cell [ref=f2e253]:
+                - 'button "Revoke access: LAB_TECH, Dashboard" [pressed] [ref=f2e254] [cursor=pointer]'
+              - cell [ref=f2e257]:
+                - 'button "Revoke access: PHARMACIST, Dashboard" [pressed] [ref=f2e258] [cursor=pointer]'
+              - cell [ref=f2e261]:
+                - 'button "Revoke access: HR, Dashboard" [pressed] [ref=f2e262] [cursor=pointer]'
+            - row [ref=f2e265]:
+              - cell "Patients" [ref=f2e266]
+              - cell [ref=f2e274]:
+                - 'button "Revoke access: ADMIN, Patients" [pressed] [ref=f2e275] [cursor=pointer]'
+              - cell [ref=f2e278]:
+                - 'button "Revoke access: DOCTOR, Patients" [pressed] [ref=f2e279] [cursor=pointer]'
+              - cell [ref=f2e282]:
+                - 'button "Revoke access: NURSE, Patients" [pressed] [ref=f2e283] [cursor=pointer]'
+              - cell [ref=f2e286]:
+                - 'button "Revoke access: RECEPTIONIST, Patients" [pressed] [ref=f2e287] [cursor=pointer]'
+              - cell [ref=f2e290]:
+                - 'button "Revoke access: LAB_TECH, Patients" [pressed] [ref=f2e291] [cursor=pointer]'
+              - cell [ref=f2e294]:
+                - 'button "Revoke access: PHARMACIST, Patients" [pressed] [ref=f2e295] [cursor=pointer]'
+              - cell [ref=f2e298]:
+                - 'button "Grant access: HR, Patients" [ref=f2e299] [cursor=pointer]'
+            - row [ref=f2e301]:
+              - cell "Appointments" [ref=f2e302]
+              - cell [ref=f2e307]:
+                - 'button "Revoke access: ADMIN, Appointments" [pressed] [ref=f2e308] [cursor=pointer]'
+              - cell [ref=f2e311]:
+                - 'button "Revoke access: DOCTOR, Appointments" [pressed] [ref=f2e312] [cursor=pointer]'
+              - cell [ref=f2e315]:
+                - 'button "Revoke access: NURSE, Appointments" [pressed] [ref=f2e316] [cursor=pointer]'
+              - cell [ref=f2e319]:
+                - 'button "Revoke access: RECEPTIONIST, Appointments" [pressed] [ref=f2e320] [cursor=pointer]'
+              - cell [ref=f2e323]:
+                - 'button "Grant access: LAB_TECH, Appointments" [ref=f2e324] [cursor=pointer]'
+              - cell [ref=f2e326]:
+                - 'button "Grant access: PHARMACIST, Appointments" [ref=f2e327] [cursor=pointer]'
+              - cell [ref=f2e329]:
+                - 'button "Grant access: HR, Appointments" [ref=f2e330] [cursor=pointer]'
+            - row [ref=f2e332]:
+              - cell "Doctors" [ref=f2e333]
+              - cell [ref=f2e340]:
+                - 'button "Revoke access: ADMIN, Doctors" [pressed] [ref=f2e341] [cursor=pointer]'
+              - cell [ref=f2e344]:
+                - 'button "Revoke access: DOCTOR, Doctors" [pressed] [ref=f2e345] [cursor=pointer]'
+              - cell [ref=f2e348]:
+                - 'button "Revoke access: NURSE, Doctors" [pressed] [ref=f2e349] [cursor=pointer]'
+              - cell [ref=f2e352]:
+                - 'button "Revoke access: RECEPTIONIST, Doctors" [pressed] [ref=f2e353] [cursor=pointer]'
+              - cell [ref=f2e356]:
+                - 'button "Grant access: LAB_TECH, Doctors" [ref=f2e357] [cursor=pointer]'
+              - cell [ref=f2e359]:
+                - 'button "Grant access: PHARMACIST, Doctors" [ref=f2e360] [cursor=pointer]'
+              - cell [ref=f2e362]:
+                - 'button "Revoke access: HR, Doctors" [pressed] [ref=f2e363] [cursor=pointer]'
+            - row [ref=f2e366]:
+              - cell "Departments" [ref=f2e367]
+              - cell [ref=f2e374]:
+                - 'button "Revoke access: ADMIN, Departments" [pressed] [ref=f2e375] [cursor=pointer]'
+              - cell [ref=f2e378]:
+                - 'button "Revoke access: DOCTOR, Departments" [pressed] [ref=f2e379] [cursor=pointer]'
+              - cell [ref=f2e382]:
+                - 'button "Revoke access: NURSE, Departments" [pressed] [ref=f2e383] [cursor=pointer]'
+              - cell [ref=f2e386]:
+                - 'button "Revoke access: RECEPTIONIST, Departments" [pressed] [ref=f2e387] [cursor=pointer]'
+              - cell [ref=f2e390]:
+                - 'button "Grant access: LAB_TECH, Departments" [ref=f2e391] [cursor=pointer]'
+              - cell [ref=f2e393]:
+                - 'button "Grant access: PHARMACIST, Departments" [ref=f2e394] [cursor=pointer]'
+              - cell [ref=f2e396]:
+                - 'button "Revoke access: HR, Departments" [pressed] [ref=f2e397] [cursor=pointer]'
+            - row [ref=f2e400]:
+              - cell "Admissions" [ref=f2e401]
+              - cell [ref=f2e407]:
+                - 'button "Revoke access: ADMIN, Admissions" [pressed] [ref=f2e408] [cursor=pointer]'
+              - cell [ref=f2e411]:
+                - 'button "Revoke access: DOCTOR, Admissions" [pressed] [ref=f2e412] [cursor=pointer]'
+              - cell [ref=f2e415]:
+                - 'button "Revoke access: NURSE, Admissions" [pressed] [ref=f2e416] [cursor=pointer]'
+              - cell [ref=f2e419]:
+                - 'button "Revoke access: RECEPTIONIST, Admissions" [pressed] [ref=f2e420] [cursor=pointer]'
+              - cell [ref=f2e423]:
+                - 'button "Grant access: LAB_TECH, Admissions" [ref=f2e424] [cursor=pointer]'
+              - cell [ref=f2e426]:
+                - 'button "Grant access: PHARMACIST, Admissions" [ref=f2e427] [cursor=pointer]'
+              - cell [ref=f2e429]:
+                - 'button "Grant access: HR, Admissions" [ref=f2e430] [cursor=pointer]'
+            - row [ref=f2e432]:
+              - cell "Rooms" [ref=f2e433]
+              - cell [ref=f2e439]:
+                - 'button "Revoke access: ADMIN, Rooms" [pressed] [ref=f2e440] [cursor=pointer]'
+              - cell [ref=f2e443]:
+                - 'button "Revoke access: DOCTOR, Rooms" [pressed] [ref=f2e444] [cursor=pointer]'
+              - cell [ref=f2e447]:
+                - 'button "Revoke access: NURSE, Rooms" [pressed] [ref=f2e448] [cursor=pointer]'
+              - cell [ref=f2e451]:
+                - 'button "Revoke access: RECEPTIONIST, Rooms" [pressed] [ref=f2e452] [cursor=pointer]'
+              - cell [ref=f2e455]:
+                - 'button "Grant access: LAB_TECH, Rooms" [ref=f2e456] [cursor=pointer]'
+              - cell [ref=f2e458]:
+                - 'button "Grant access: PHARMACIST, Rooms" [ref=f2e459] [cursor=pointer]'
+              - cell [ref=f2e461]:
+                - 'button "Grant access: HR, Rooms" [ref=f2e462] [cursor=pointer]'
+            - row [ref=f2e464]:
+              - cell "Laboratory" [ref=f2e465]
+              - cell [ref=f2e470]:
+                - 'button "Revoke access: ADMIN, Laboratory" [pressed] [ref=f2e471] [cursor=pointer]'
+              - cell [ref=f2e474]:
+                - 'button "Revoke access: DOCTOR, Laboratory" [pressed] [ref=f2e475] [cursor=pointer]'
+              - cell [ref=f2e478]:
+                - 'button "Revoke access: NURSE, Laboratory" [pressed] [ref=f2e479] [cursor=pointer]'
+              - cell [ref=f2e482]:
+                - 'button "Grant access: RECEPTIONIST, Laboratory" [ref=f2e483] [cursor=pointer]'
+              - cell [ref=f2e485]:
+                - 'button "Revoke access: LAB_TECH, Laboratory" [pressed] [ref=f2e486] [cursor=pointer]'
+              - cell [ref=f2e489]:
+                - 'button "Grant access: PHARMACIST, Laboratory" [ref=f2e490] [cursor=pointer]'
+              - cell [ref=f2e492]:
+                - 'button "Grant access: HR, Laboratory" [ref=f2e493] [cursor=pointer]'
+            - row [ref=f2e495]:
+              - cell "Pharmacy" [ref=f2e496]
+              - cell [ref=f2e502]:
+                - 'button "Revoke access: ADMIN, Pharmacy" [pressed] [ref=f2e503] [cursor=pointer]'
+              - cell [ref=f2e506]:
+                - 'button "Revoke access: DOCTOR, Pharmacy" [pressed] [ref=f2e507] [cursor=pointer]'
+              - cell [ref=f2e510]:
+                - 'button "Revoke access: NURSE, Pharmacy" [pressed] [ref=f2e511] [cursor=pointer]'
+              - cell [ref=f2e514]:
+                - 'button "Grant access: RECEPTIONIST, Pharmacy" [ref=f2e515] [cursor=pointer]'
+              - cell [ref=f2e517]:
+                - 'button "Grant access: LAB_TECH, Pharmacy" [ref=f2e518] [cursor=pointer]'
+              - cell [ref=f2e520]:
+                - 'button "Revoke access: PHARMACIST, Pharmacy" [pressed] [ref=f2e521] [cursor=pointer]'
+              - cell [ref=f2e524]:
+                - 'button "Grant access: HR, Pharmacy" [ref=f2e525] [cursor=pointer]'
+            - row [ref=f2e527]:
+              - cell "Billing" [ref=f2e528]
+              - cell [ref=f2e534]:
+                - 'button "Revoke access: ADMIN, Billing" [pressed] [ref=f2e535] [cursor=pointer]'
+              - cell [ref=f2e538]:
+                - 'button "Grant access: DOCTOR, Billing" [ref=f2e539] [cursor=pointer]'
+              - cell [ref=f2e541]:
+                - 'button "Grant access: NURSE, Billing" [ref=f2e542] [cursor=pointer]'
+              - cell [ref=f2e544]:
+                - 'button "Revoke access: RECEPTIONIST, Billing" [pressed] [ref=f2e545] [cursor=pointer]'
+              - cell [ref=f2e548]:
+                - 'button "Grant access: LAB_TECH, Billing" [ref=f2e549] [cursor=pointer]'
+              - cell [ref=f2e551]:
+                - 'button "Grant access: PHARMACIST, Billing" [ref=f2e552] [cursor=pointer]'
+              - cell [ref=f2e554]:
+                - 'button "Grant access: HR, Billing" [ref=f2e555] [cursor=pointer]'
+            - row [ref=f2e557]:
+              - cell "Employees" [ref=f2e558]
+              - cell [ref=f2e573]:
+                - 'button "Revoke access: ADMIN, Employees" [pressed] [ref=f2e574] [cursor=pointer]'
+              - cell [ref=f2e577]:
+                - 'button "Grant access: DOCTOR, Employees" [ref=f2e578] [cursor=pointer]'
+              - cell [ref=f2e580]:
+                - 'button "Grant access: NURSE, Employees" [ref=f2e581] [cursor=pointer]'
+              - cell [ref=f2e583]:
+                - 'button "Grant access: RECEPTIONIST, Employees" [ref=f2e584] [cursor=pointer]'
+              - cell [ref=f2e586]:
+                - 'button "Grant access: LAB_TECH, Employees" [ref=f2e587] [cursor=pointer]'
+              - cell [ref=f2e589]:
+                - 'button "Grant access: PHARMACIST, Employees" [ref=f2e590] [cursor=pointer]'
+              - cell [ref=f2e592]:
+                - 'button "Revoke access: HR, Employees" [pressed] [ref=f2e593] [cursor=pointer]'
+            - row [ref=f2e596]:
+              - cell "Payroll" [ref=f2e597]
+              - cell [ref=f2e603]:
+                - 'button "Revoke access: ADMIN, Payroll" [pressed] [ref=f2e604] [cursor=pointer]'
+              - cell [ref=f2e607]:
+                - 'button "Grant access: DOCTOR, Payroll" [ref=f2e608] [cursor=pointer]'
+              - cell [ref=f2e610]:
+                - 'button "Grant access: NURSE, Payroll" [ref=f2e611] [cursor=pointer]'
+              - cell [ref=f2e613]:
+                - 'button "Grant access: RECEPTIONIST, Payroll" [ref=f2e614] [cursor=pointer]'
+              - cell [ref=f2e616]:
+                - 'button "Grant access: LAB_TECH, Payroll" [ref=f2e617] [cursor=pointer]'
+              - cell [ref=f2e619]:
+                - 'button "Grant access: PHARMACIST, Payroll" [ref=f2e620] [cursor=pointer]'
+              - cell [ref=f2e622]:
+                - 'button "Revoke access: HR, Payroll" [pressed] [ref=f2e623] [cursor=pointer]'
+            - row [ref=f2e626]:
+              - cell "Reports & Analytics" [ref=f2e627]
+              - cell [ref=f2e632]:
+                - 'button "Revoke access: ADMIN, Reports & Analytics" [pressed] [ref=f2e633] [cursor=pointer]'
+              - cell [ref=f2e636]:
+                - 'button "Revoke access: DOCTOR, Reports & Analytics" [pressed] [ref=f2e637] [cursor=pointer]'
+              - cell [ref=f2e640]:
+                - 'button "Grant access: NURSE, Reports & Analytics" [ref=f2e641] [cursor=pointer]'
+              - cell [ref=f2e643]:
+                - 'button "Grant access: RECEPTIONIST, Reports & Analytics" [ref=f2e644] [cursor=pointer]'
+              - cell [ref=f2e646]:
+                - 'button "Grant access: LAB_TECH, Reports & Analytics" [ref=f2e647] [cursor=pointer]'
+              - cell [ref=f2e649]:
+                - 'button "Grant access: PHARMACIST, Reports & Analytics" [ref=f2e650] [cursor=pointer]'
+              - cell [ref=f2e652]:
+                - 'button "Revoke access: HR, Reports & Analytics" [pressed] [ref=f2e653] [cursor=pointer]'
+            - row [ref=f2e656]:
+              - cell "User Management" [ref=f2e657]
+              - cell [ref=f2e667]:
+                - 'button "Revoke access: ADMIN, User Management" [pressed] [ref=f2e668] [cursor=pointer]'
+              - cell [ref=f2e671]:
+                - 'button "Admin-only — locked: DOCTOR, User Management" [disabled] [ref=f2e672]'
+              - cell [ref=f2e677]:
+                - 'button "Admin-only — locked: NURSE, User Management" [disabled] [ref=f2e678]'
+              - cell [ref=f2e683]:
+                - 'button "Admin-only — locked: RECEPTIONIST, User Management" [disabled] [ref=f2e684]'
+              - cell [ref=f2e689]:
+                - 'button "Admin-only — locked: LAB_TECH, User Management" [disabled] [ref=f2e690]'
+              - cell [ref=f2e695]:
+                - 'button "Admin-only — locked: PHARMACIST, User Management" [disabled] [ref=f2e696]'
+              - cell [ref=f2e701]:
+                - 'button "Admin-only — locked: HR, User Management" [disabled] [ref=f2e702]'
+            - row [ref=f2e707]:
+              - cell "Access Matrix" [ref=f2e708]
+              - cell [ref=f2e718]:
+                - 'button "Revoke access: ADMIN, Access Matrix" [pressed] [ref=f2e719] [cursor=pointer]'
+              - cell [ref=f2e722]:
+                - 'button "Admin-only — locked: DOCTOR, Access Matrix" [disabled] [ref=f2e723]'
+              - cell [ref=f2e728]:
+                - 'button "Admin-only — locked: NURSE, Access Matrix" [disabled] [ref=f2e729]'
+              - cell [ref=f2e734]:
+                - 'button "Admin-only — locked: RECEPTIONIST, Access Matrix" [disabled] [ref=f2e735]'
+              - cell [ref=f2e740]:
+                - 'button "Admin-only — locked: LAB_TECH, Access Matrix" [disabled] [ref=f2e741]'
+              - cell [ref=f2e746]:
+                - 'button "Admin-only — locked: PHARMACIST, Access Matrix" [disabled] [ref=f2e747]'
+              - cell [ref=f2e752]:
+                - 'button "Admin-only — locked: HR, Access Matrix" [disabled] [ref=f2e753]'
+        - paragraph [ref=f2e758]: Locked rows are admin-only and cannot be toggled. Changes take effect immediately for all active sessions after saving.

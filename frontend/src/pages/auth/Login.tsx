@@ -102,9 +102,10 @@ export default function Login() {
                 {...register('username')}
                 autoComplete="username"
                 aria-invalid={!!errors.username}
+                aria-describedby={errors.username ? 'login-username-error' : undefined}
                 className="input"
               />
-              {errors.username && <p className="text-xs text-danger">{errors.username.message}</p>}
+              {errors.username && <p id="login-username-error" className="text-xs text-danger-ink">{errors.username.message}</p>}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -116,6 +117,7 @@ export default function Login() {
                   type={showPw ? 'text' : 'password'}
                   autoComplete="current-password"
                   aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? 'login-password-error' : undefined}
                   className="input pr-12"
                 />
                 <button
@@ -123,12 +125,12 @@ export default function Login() {
                   onClick={() => setShowPw(!showPw)}
                   aria-label={showPw ? 'Hide password' : 'Show password'}
                   aria-pressed={showPw}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-lg text-ink-subtle hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   {showPw ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
                 </button>
               </div>
-              {errors.password && <p className="text-xs text-danger">{errors.password.message}</p>}
+              {errors.password && <p id="login-password-error" className="text-xs text-danger-ink">{errors.password.message}</p>}
             </div>
 
             <button
@@ -142,7 +144,7 @@ export default function Login() {
           </form>
 
           {import.meta.env.VITE_DEMO === 'true' && (
-            <p className="mt-6 text-center text-xs text-ink-subtle">
+            <p className="mt-6 text-center text-xs text-ink-muted">
               Demo credentials: <strong>admin</strong> / <strong>Admin@123</strong>
             </p>
           )}

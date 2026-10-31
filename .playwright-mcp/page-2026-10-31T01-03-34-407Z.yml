@@ -1,0 +1,162 @@
+- generic [ref=f3e2]:
+  - generic [ref=f3e3]:
+    - complementary [ref=f3e5]:
+      - generic [ref=f3e11]:
+        - paragraph [ref=f3e12]: HMS
+        - paragraph [ref=f3e13]: Hospital System
+      - button "Collapse menu" [expanded] [ref=f3e14] [cursor=pointer]
+      - navigation "Main" [ref=f3e19]:
+        - generic [ref=f3e20]:
+          - paragraph [ref=f3e21]: Overview
+          - list [ref=f3e22]:
+            - listitem [ref=f3e23]:
+              - link "Dashboard" [ref=f3e24] [cursor=pointer]:
+                - /url: /
+            - listitem [ref=f3e31]:
+              - link "Reports & Analytics" [ref=f3e32] [cursor=pointer]:
+                - /url: /reports
+        - generic [ref=f3e36]:
+          - paragraph [ref=f3e37]: Clinical
+          - list [ref=f3e38]:
+            - listitem [ref=f3e39]:
+              - link "Patients" [ref=f3e40] [cursor=pointer]:
+                - /url: /patients
+            - listitem [ref=f3e47]:
+              - link "Appointments" [ref=f3e48] [cursor=pointer]:
+                - /url: /appointments
+            - listitem [ref=f3e52]:
+              - link "Admissions" [ref=f3e53] [cursor=pointer]:
+                - /url: /admissions
+            - listitem [ref=f3e58]:
+              - link "Doctors" [ref=f3e59] [cursor=pointer]:
+                - /url: /doctors
+            - listitem [ref=f3e65]:
+              - link "Departments" [ref=f3e66] [cursor=pointer]:
+                - /url: /departments
+        - generic [ref=f3e72]:
+          - paragraph [ref=f3e73]: Operations
+          - list [ref=f3e74]:
+            - listitem [ref=f3e75]:
+              - link "Laboratory" [ref=f3e76] [cursor=pointer]:
+                - /url: /lab
+            - listitem [ref=f3e80]:
+              - link "Pharmacy" [ref=f3e81] [cursor=pointer]:
+                - /url: /pharmacy
+            - listitem [ref=f3e86]:
+              - link "Rooms" [ref=f3e87] [cursor=pointer]:
+                - /url: /rooms
+            - listitem [ref=f3e92]:
+              - link "Billing" [ref=f3e93] [cursor=pointer]:
+                - /url: /billing
+        - generic [ref=f3e98]:
+          - paragraph [ref=f3e99]: HR
+          - list [ref=f3e100]:
+            - listitem [ref=f3e101]:
+              - link "Employees" [ref=f3e102] [cursor=pointer]:
+                - /url: /employees
+            - listitem [ref=f3e116]:
+              - link "Payroll" [ref=f3e117] [cursor=pointer]:
+                - /url: /payroll
+        - generic [ref=f3e122]:
+          - paragraph [ref=f3e123]: Administration
+          - list [ref=f3e124]:
+            - listitem [ref=f3e125]:
+              - link "User Management" [ref=f3e126] [cursor=pointer]:
+                - /url: /users
+            - listitem [ref=f3e131]:
+              - link "Access Matrix" [ref=f3e132] [cursor=pointer]:
+                - /url: /access-matrix
+      - generic [ref=f3e137]:
+        - button "System Administrator admin , open profile" [ref=f3e138] [cursor=pointer]:
+          - generic [aria-hidden] [ref=f3e139]: S
+          - generic [ref=f3e140]:
+            - generic [ref=f3e141]: System Administrator
+            - generic [ref=f3e142]: admin
+            - generic [ref=f3e143]: ", open profile"
+        - button "Log out" [ref=f3e144] [cursor=pointer]
+    - generic [ref=f3e149]:
+      - banner [ref=f3e150]:
+        - generic [ref=f3e151]:
+          - heading "Dashboard" [level=1] [ref=f3e152]
+          - paragraph [ref=f3e153]: Overview of hospital operations
+        - search [ref=f3e154]:
+          - searchbox "Search patients" [ref=f3e155]
+          - button "Search" [ref=f3e156] [cursor=pointer]
+        - generic [ref=f3e160]:
+          - button "Notifications" [ref=f3e162] [cursor=pointer]
+          - button "My profile" [ref=f3e166] [cursor=pointer]: S
+      - main [ref=f3e167]:
+        - generic [ref=f3e168]:
+          - generic [ref=f3e169]:
+            - paragraph [ref=f3e170]:
+              - time [ref=f3e171]: Friday, October 30
+            - heading "Good evening, System Administrator" [level=2] [ref=f3e172]
+          - region [ref=f3e173]:
+            - generic [ref=f3e174]:
+              - heading "Today's clinics" [level=2] [ref=f3e175]
+              - paragraph [ref=f3e176]: 0 booked, 0 seen, 0 still to arrive
+            - paragraph [ref=f3e177]: No appointments are booked for today.
+            - list [ref=f3e178]:
+              - listitem [ref=f3e179]: Seen
+              - listitem [ref=f3e181]: In consultation
+              - listitem [ref=f3e183]: Checked in, waiting
+              - listitem [ref=f3e185]: Booked
+              - listitem [ref=f3e187]: Cancelled or no-show
+          - generic [ref=f3e189]:
+            - region [ref=f3e191]:
+              - heading "Your worklist" [level=2] [ref=f3e192]
+              - list [ref=f3e193]:
+                - listitem [ref=f3e194]:
+                  - link "Patients waiting 0" [ref=f3e195] [cursor=pointer]:
+                    - /url: /appointments
+                    - generic [ref=f3e196]: Patients waiting
+                    - generic [ref=f3e198]: "0"
+                - listitem [ref=f3e199]:
+                  - link "Still to arrive today 0" [ref=f3e200] [cursor=pointer]:
+                    - /url: /appointments
+                    - generic [ref=f3e201]: Still to arrive today
+                    - generic [ref=f3e203]: "0"
+                - listitem [ref=f3e204]:
+                  - link "Lab tests pending —" [ref=f3e205] [cursor=pointer]:
+                    - /url: /lab
+                    - generic [ref=f3e206]: Lab tests pending
+                    - generic [ref=f3e208]: —
+                - listitem [ref=f3e209]:
+                  - link "Low-stock items —" [ref=f3e210] [cursor=pointer]:
+                    - /url: /pharmacy
+                    - generic [ref=f3e211]: Low-stock items
+                    - generic [ref=f3e213]: —
+                - listitem [ref=f3e214]:
+                  - link "Unpaid bills —" [ref=f3e215] [cursor=pointer]:
+                    - /url: /billing
+                    - generic [ref=f3e216]: Unpaid bills
+                    - generic [ref=f3e218]: —
+                - listitem [ref=f3e219]:
+                  - link "Inpatients —" [ref=f3e220] [cursor=pointer]:
+                    - /url: /admissions
+                    - generic [ref=f3e221]: Inpatients
+                    - generic [ref=f3e223]: —
+                - listitem [ref=f3e224]:
+                  - link "Unpaid payroll —" [ref=f3e225] [cursor=pointer]:
+                    - /url: /payroll
+                    - generic [ref=f3e226]: Unpaid payroll
+                    - generic [ref=f3e228]: —
+            - region [ref=f3e230]:
+              - generic [ref=f3e231]:
+                - heading "Rooms" [level=2] [ref=f3e232]
+                - link "Open rooms" [ref=f3e233] [cursor=pointer]:
+                  - /url: /rooms
+              - paragraph [ref=f3e234]:
+                - strong [ref=f3e235]: —
+                - text: of 0 occupied
+              - generic [ref=f3e236]:
+                - generic [ref=f3e237]:
+                  - term [ref=f3e239]: Occupied
+                  - definition [ref=f3e240]: "0"
+                - generic [ref=f3e241]:
+                  - term [ref=f3e243]: Available
+                  - definition [ref=f3e244]: "0"
+                - generic [ref=f3e245]:
+                  - term [ref=f3e247]: Maintenance
+                  - definition [ref=f3e248]: "0"
+  - status [ref=f3e254]: Server error. Please try again.

@@ -163,7 +163,7 @@ export default function Appointments() {
         )}
         <Menu>
           <MenuButton aria-label={`More actions for ${a.patient?.name ?? 'appointment'}`}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-card hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-card hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
             <MoreHorizontal size={16} aria-hidden="true" />
           </MenuButton>
           <MenuItems anchor="bottom end"
@@ -192,7 +192,7 @@ export default function Appointments() {
           {([['list', List, 'List'], ['week', CalendarDays, 'Week']] as const).map(([v, Icon, label]) => (
             <button key={v} onClick={() => setView(v)} aria-pressed={view === v}
               className={cn('flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                 view === v ? 'bg-primary text-white' : 'text-ink-muted hover:text-ink')}>
               <Icon size={15} aria-hidden="true" /> {label}
             </button>
@@ -325,7 +325,7 @@ function ListView({ doctors, mine, actions }: {
         {ALL_STATUSES.map((s) => (
           <button key={s} onClick={() => toggle(s)} aria-pressed={statuses.includes(s)}
             className={cn('rounded-lg px-3 py-1 text-xs font-medium transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
               statuses.includes(s) ? 'bg-primary text-white' : 'bg-primary-50 text-primary-700 hover:bg-primary-100')}>
             {pretty(s)}
           </button>
@@ -455,7 +455,7 @@ function WeekView({ doctors, defaultDoctorId, canBook, onBook, onOpen }: {
           {offHours.map((a, i) => (
             <span key={a.id}>
               {i > 0 && ', '}
-              <button onClick={() => onOpen(a)} className="font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+              <button onClick={() => onOpen(a)} className="font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                 {a.patient?.name} {format(parseISO(a.appointmentDate), 'EEE h:mm a')}
               </button>
             </span>
@@ -503,7 +503,7 @@ function WeekView({ doctors, defaultDoctorId, canBook, onBook, onOpen }: {
                       <td key={key}>
                         <button onClick={() => onOpen(a)}
                           className={cn('w-full truncate rounded-lg px-2 py-1.5 text-left font-medium',
-                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                             cellTone(a.status))}>
                           {a.patient?.name}
                           <span className="sr-only">, {format(parseISO(a.appointmentDate), 'EEEE h:mm a')}, {pretty(a.status)}</span>
@@ -516,7 +516,7 @@ function WeekView({ doctors, defaultDoctorId, canBook, onBook, onOpen }: {
                     <td key={key}>
                       {free && bookable ? (
                         <button onClick={() => onBook(doctor!.id, format(d, DAY), t)}
-                          className="w-full rounded-lg border border-dashed border-primary-200 py-1.5 text-primary-700 opacity-60 hover:bg-primary-50 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                          className="w-full rounded-lg border border-dashed border-primary-200 py-1.5 text-primary-700 opacity-60 hover:bg-primary-50 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                           <span aria-hidden="true">+</span>
                           <span className="sr-only">Book {format(start, 'EEEE MMM d, h:mm a')}</span>
                         </button>
@@ -618,7 +618,7 @@ function BookingModal({ state, doctors, lockDoctor, onClose }: {
                   {slots.map((s) => (
                     <button key={s} type="button" onClick={() => setSlot(s)} aria-pressed={slot === s}
                       className={cn('rounded-lg px-3 py-1.5 text-sm font-medium tabular-nums transition-colors',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                         slot === s ? 'bg-primary text-white' : 'bg-primary-50 text-primary-700 hover:bg-primary-100')}>
                       {format(parseISO(s), 'h:mm a')}
                     </button>

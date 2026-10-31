@@ -5,28 +5,23 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
   Plus, Search, Pencil, Trash2, ToggleLeft, ToggleRight,
-  KeyRound, Stethoscope, UserCog, Link2, Link2Off,
+  Stethoscope, UserCog, Link2, Link2Off,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { userApi, doctorApi, employeeApi, departmentApi } from '@/api/endpoints'
 import type { SystemUser, UserRole, Department } from '@/types'
 import { cn } from '@/utils/cn'
-import { Modal } from '@/components/ui/Modal'
+import { Modal, ConfirmDialog } from '@/components/ui/Modal'
+import { Table } from '@/components/ui/Table'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { Badge, roleTone } from '@/components/ui/Badge'
 
-const ROLE_COLORS: Record<UserRole, string> = {
-  ADMIN:        'bg-red-500/15 text-red-400',
-  DOCTOR:       'bg-blue-500/15 text-blue-400',
-  NURSE:        'bg-green-500/15 text-green-400',
-  RECEPTIONIST: 'bg-yellow-500/15 text-yellow-400',
-  LAB_TECH:     'bg-purple-500/15 text-purple-400',
-  PHARMACIST:   'bg-teal-500/15 text-teal-400',
-  HR:           'bg-orange-500/15 text-orange-400',
-}
+const STAFF_ICON = { DOCTOR: Stethoscope, EMPLOYEE: UserCog }
 
-const STAFF_COLORS = {
-  DOCTOR:   { badge: 'bg-blue-500/10 text-blue-400',   icon: Stethoscope },
-  EMPLOYEE: { badge: 'bg-orange-500/10 text-orange-400', icon: UserCog },
-}
+const rowBtn =
+  'flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-alt hover:text-ink transition-colors ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
 
 const createSchema = z.object({
   username:       z.string().min(3, 'Min 3 characters').max(50),
@@ -59,6 +54,7 @@ export default function Users() {
   const [modal, setModal]   = useState<'create' | 'edit' | null>(null)
   const [editing, setEditing]       = useState<SystemUser | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<SystemUser | null>(null)
+  const [deactivateTarget, setDeactivateTarget] = useState<SystemUser | null>(null)
 
   // Link-section state (inside edit modal)
   const [linkType, setLinkType]     = useState<'DOCTOR' | 'EMPLOYEE' | ''>('')
@@ -121,7 +117,11 @@ export default function Users() {
 
   const toggleMutation = useMutation({
     mutationFn: (id: number) => userApi.toggleActive(id),
-    onSuccess: () => { toast.success('Status toggled'); void qc.invalidateQueries({ queryKey: ['users'] }) },
+    onSuccess: () => {
+      toast.success('Status toggled')
+      void qc.invalidateQueries({ queryKey: ['users'] })
+      setDeactivateTarget(null)
+    },
     onError: () => toast.error('Failed to toggle status'),
   })
 
@@ -179,62 +179,41 @@ export default function Users() {
   return (
     <div className="space-y-6">
 
-      {/* ── Header ─────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-            <KeyRound size={20} className="text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold text-ink">User Management</h1>
-            <p className="text-sm text-ink-subtle">Manage system accounts and role assignments</p>
-          </div>
+      {/* ── Search + add (the page title lives in Header) ──────────── */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="w-full max-w-sm">
+          <Input
+            value={q}
+            onChange={(e) => { setQ(e.target.value); setPage(0) }}
+            placeholder="Search by name or username…"
+            aria-label="Search users"
+            icon={<Search size={15} aria-hidden="true" />}
+          />
         </div>
-        <button
+        <Button
           onClick={() => { createForm.reset({ hireDate: new Date().toISOString().split('T')[0] }); setModal('create') }}
-          className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 transition-colors"
+          icon={<Plus size={16} aria-hidden="true" />}
         >
-          <Plus size={16} aria-hidden="true" />
           Add user
-        </button>
-      </div>
-
-      {/* ── Search ─────────────────────────────────────────────────── */}
-      <div className="relative max-w-sm">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
-        <input
-          value={q}
-          onChange={(e) => { setQ(e.target.value); setPage(0) }}
-          placeholder="Search by name or username…"
-          aria-label="Search users"
-          className="w-full rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none"
-        />
+        </Button>
       </div>
 
       {/* ── Table ──────────────────────────────────────────────────── */}
-      <UsersTable users={users} loading={isLoading} onToggle={(u) => toggleMutation.mutate(u.id)}
-        onEdit={openEdit} onDelete={setDeleteTarget} />
-
-      {/* ── Pagination ─────────────────────────────────────────────── */}
-      {total > 1 && (
-        <div className="flex items-center justify-end gap-2 text-sm">
-          <button
-            disabled={page === 0}
-            onClick={() => setPage((p) => p - 1)}
-            className="rounded-lg border border-border px-3 py-1.5 text-ink-subtle hover:bg-surface-alt disabled:opacity-40"
-          >
-            Previous
-          </button>
-          <span className="text-ink-subtle">Page {page + 1} of {total}</span>
-          <button
-            disabled={page + 1 >= total}
-            onClick={() => setPage((p) => p + 1)}
-            className="rounded-lg border border-border px-3 py-1.5 text-ink-subtle hover:bg-surface-alt disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <Table
+        columns={userColumns({
+          // Deactivating locks someone out mid-shift, so it confirms; reactivating doesn't
+          onToggle: (u) => (u.active ? setDeactivateTarget(u) : toggleMutation.mutate(u.id)),
+          onEdit: openEdit,
+          onDelete: setDeleteTarget,
+        })}
+        data={users as unknown as Record<string, unknown>[]}
+        keyField={'id' as never}
+        loading={isLoading}
+        emptyMessage="No users found."
+        totalPages={total}
+        currentPage={page}
+        onPageChange={setPage}
+      />
 
       {/* ── Create / Edit Modal ────────────────────────────────────── */}
       {(modal === 'create' || modal === 'edit') && (
@@ -246,7 +225,7 @@ export default function Users() {
                 <ModalActions
                   onCancel={() => setModal(null)}
                   isPending={createMutation.isPending}
-                  label="Create User"
+                  label="Create user"
                 />
               </form>
             ) : (
@@ -265,8 +244,8 @@ export default function Users() {
 
                 {/* ── Staff Profile Link ───────────────────────────── */}
                 <div className="mt-5 border-t border-border pt-5 space-y-3">
-                  <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-ink-subtle">
-                    <Link2 size={12} />
+                  <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-ink-muted">
+                    <Link2 size={12} aria-hidden="true" />
                     Staff Profile Link
                   </p>
 
@@ -274,30 +253,31 @@ export default function Users() {
                     <div className="flex items-center justify-between rounded-xl border border-border bg-surface-alt px-3 py-2.5">
                       <div className="flex items-center gap-2 min-w-0">
                         {editing.linkedStaff.type === 'DOCTOR'
-                          ? <Stethoscope size={14} className="text-blue-400 shrink-0" />
-                          : <UserCog     size={14} className="text-orange-400 shrink-0" />}
+                          ? <Stethoscope size={14} className="text-info-ink shrink-0" aria-hidden="true" />
+                          : <UserCog     size={14} className="text-primary-700 shrink-0" aria-hidden="true" />}
                         <span className="text-sm font-medium text-ink truncate">{editing.linkedStaff.name}</span>
-                        <span className="text-xs text-ink-subtle shrink-0">
+                        <span className="text-xs text-ink-muted shrink-0">
                           ({editing.linkedStaff.type === 'DOCTOR' ? 'Doctor' : 'Employee'})
                         </span>
                       </div>
-                      <button
-                        type="button"
+                      <Button
+                        type="button" variant="ghost" size="sm"
                         onClick={() => unlinkMutation.mutate(editing.id)}
-                        disabled={unlinkMutation.isPending}
-                        className="flex items-center gap-1 text-xs text-danger hover:text-danger/80 shrink-0 ml-3 disabled:opacity-50"
+                        loading={unlinkMutation.isPending}
+                        icon={<Link2Off size={12} aria-hidden="true" />}
+                        className="ml-3 shrink-0 text-danger-ink hover:text-danger-ink"
                       >
-                        <Link2Off size={12} />
                         Unlink
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <p className="text-xs text-ink-subtle">No staff profile linked to this account.</p>
+                      <p className="text-xs text-ink-muted">No staff profile linked to this account.</p>
                       <div className="flex gap-2">
                         <select
                           value={linkType}
                           onChange={(e) => { setLinkType(e.target.value as typeof linkType); setLinkStaffId('') }}
+                          aria-label="Staff profile type"
                           className={inputCls(false)}
                         >
                           <option value="">Select type…</option>
@@ -308,6 +288,7 @@ export default function Users() {
                           <select
                             value={linkStaffId}
                             onChange={(e) => setLinkStaffId(Number(e.target.value))}
+                            aria-label="Staff member"
                             className={inputCls(false)}
                           >
                             <option value="">Select person…</option>
@@ -318,19 +299,18 @@ export default function Users() {
                         )}
                       </div>
                       {linkType && linkStaffId !== '' && (
-                        <button
-                          type="button"
+                        <Button
+                          type="button" size="sm"
                           onClick={() => editing && linkMutation.mutate({
                             id: editing.id,
                             staffType: linkType,
                             staffId: Number(linkStaffId),
                           })}
-                          disabled={linkMutation.isPending}
-                          className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-60"
+                          loading={linkMutation.isPending}
+                          icon={<Link2 size={13} aria-hidden="true" />}
                         >
-                          <Link2 size={13} />
-                          {linkMutation.isPending ? 'Linking…' : 'Link profile'}
-                        </button>
+                          Link profile
+                        </Button>
                       )}
                     </div>
                   )}
@@ -340,30 +320,31 @@ export default function Users() {
         </Modal>
       )}
 
-      {/* ── Delete Confirm ─────────────────────────────────────────── */}
-      {deleteTarget && (
-        <Modal open onClose={() => setDeleteTarget(null)} title="Delete user" size="sm">
-            <p className="mb-6 text-sm text-ink-subtle">
-              Are you sure you want to delete{' '}
-              <strong className="text-ink">{deleteTarget.fullName}</strong>?
-              This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button type="button" onClick={() => setDeleteTarget(null)}
-                className="rounded-xl border border-border px-4 py-2 text-sm text-ink-subtle hover:bg-surface-alt">
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => deleteMutation.mutate(deleteTarget.id)}
-                disabled={deleteMutation.isPending}
-                className="rounded-xl bg-danger px-4 py-2 text-sm font-medium text-white hover:bg-danger/90 disabled:opacity-60"
-              >
-                {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
-              </button>
-            </div>
-        </Modal>
-      )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete user"
+        confirmLabel="Delete user"
+        pending={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+        onClose={() => setDeleteTarget(null)}
+      >
+        <p>
+          Delete <strong>{deleteTarget?.fullName}</strong>? This can't be undone.
+        </p>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={!!deactivateTarget}
+        title="Deactivate user"
+        confirmLabel="Deactivate"
+        pending={toggleMutation.isPending}
+        onConfirm={() => deactivateTarget && toggleMutation.mutate(deactivateTarget.id)}
+        onClose={() => setDeactivateTarget(null)}
+      >
+        <p>
+          <strong>{deactivateTarget?.fullName}</strong> will be signed out and can't log in until reactivated.
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }
@@ -372,108 +353,92 @@ export default function Users() {
 
 type RowActions = Readonly<{ onToggle: (u: SystemUser) => void; onEdit: (u: SystemUser) => void; onDelete: (u: SystemUser) => void }>
 
-function UsersTable({ users, loading, onToggle, onEdit, onDelete }: RowActions & Readonly<{ users: SystemUser[]; loading: boolean }>) {
-  let body: React.ReactNode
-  if (loading) {
-    body = <div className="flex h-40 items-center justify-center text-sm text-ink-subtle">Loading…</div>
-  } else if (users.length === 0) {
-    body = <div className="flex h-40 items-center justify-center text-sm text-ink-subtle">No users found</div>
-  } else {
-    body = (
-      <table className="w-full whitespace-nowrap text-sm">
-        <thead>
-          <tr className="border-b border-border bg-surface-alt">
-            <th className="px-4 py-3 text-left font-medium text-ink-subtle">User</th>
-            <th className="px-4 py-3 text-left font-medium text-ink-subtle">Username</th>
-            <th className="px-4 py-3 text-left font-medium text-ink-subtle">Role</th>
-            <th className="px-4 py-3 text-left font-medium text-ink-subtle">Staff Profile</th>
-            <th className="px-4 py-3 text-left font-medium text-ink-subtle">Status</th>
-            <th className="px-4 py-3 text-left font-medium text-ink-subtle">Created</th>
-            <th className="px-4 py-3 text-right font-medium text-ink-subtle">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {users.map((user) => <UserRow key={user.id} user={user} onToggle={onToggle} onEdit={onEdit} onDelete={onDelete} />)}
-        </tbody>
-      </table>
-    )
-  }
-  return <div className="rounded-2xl border border-border bg-surface overflow-hidden overflow-x-auto">{body}</div>
-}
+const asUser = (r: Record<string, unknown>) => r as unknown as SystemUser
 
-function UserRow({ user, onToggle, onEdit, onDelete }: RowActions & Readonly<{ user: SystemUser }>) {
-  const staff = user.linkedStaff
-  const staffStyle = staff ? STAFF_COLORS[staff.type] : null
-  return (
-    <tr className="hover:bg-surface-alt/50 transition-colors">
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-semibold">
-            {user.fullName.charAt(0)}
+function userColumns({ onToggle, onEdit, onDelete }: RowActions) {
+  return [
+    {
+      key: 'fullName', header: 'User',
+      render: (r: Record<string, unknown>) => {
+        const user = asUser(r)
+        return (
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-50 text-primary-700 text-xs font-semibold" aria-hidden="true">
+              {user.fullName.charAt(0)}
+            </div>
+            <div>
+              <p className="font-medium text-ink">{user.fullName}</p>
+              <p className="text-xs text-ink-muted">{user.email}</p>
+            </div>
           </div>
-          <div>
-            <p className="font-medium text-ink">{user.fullName}</p>
-            <p className="text-xs text-ink-subtle">{user.email}</p>
-          </div>
-        </div>
-      </td>
-      <td className="px-4 py-3 text-ink-subtle font-mono text-xs">{user.username}</td>
-      <td className="px-4 py-3">
-        <span className={cn('inline-flex items-center rounded-lg px-2.5 py-0.5 text-xs font-medium', ROLE_COLORS[user.role])}>
-          {user.role.replace('_', ' ')}
-        </span>
-      </td>
-      <td className="px-4 py-3">
-        {staff && staffStyle ? (
-          <span className={cn('inline-flex items-center gap-1.5 rounded-lg px-2.5 py-0.5 text-xs font-medium', staffStyle.badge)}>
-            <staffStyle.icon size={11} />
+        )
+      },
+    },
+    { key: 'username', header: 'Username', className: 'font-mono text-xs text-ink-muted' },
+    {
+      key: 'role', header: 'Role',
+      render: (r: Record<string, unknown>) => {
+        const { role } = asUser(r)
+        return <Badge className={roleTone[role]}>{role.replace('_', ' ')}</Badge>
+      },
+    },
+    {
+      key: 'linkedStaff', header: 'Staff profile',
+      render: (r: Record<string, unknown>) => {
+        const staff = asUser(r).linkedStaff
+        if (!staff) return <span className="text-xs text-ink-muted">—</span>
+        const Icon = STAFF_ICON[staff.type]
+        return (
+          <Badge variant={staff.type === 'DOCTOR' ? 'info' : 'orange'} className="gap-1.5">
+            <Icon size={11} aria-hidden="true" />
             {staff.name}
-          </span>
-        ) : (
-          <span className="text-xs text-ink-subtle">—</span>
-        )}
-      </td>
-      <td className="px-4 py-3">
-        <span className={cn(
-          'inline-flex items-center rounded-lg px-2.5 py-0.5 text-xs font-medium',
-          user.active ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger',
-        )}>
-          {user.active ? 'Active' : 'Inactive'}
-        </span>
-      </td>
-      <td className="px-4 py-3 text-ink-subtle text-xs">
-        {new Date(user.createdAt).toLocaleDateString()}
-      </td>
-      <td className="px-4 py-3">
-        <div className="flex items-center justify-end gap-1">
-          <button
-            onClick={() => onToggle(user)}
-            title={user.active ? 'Deactivate' : 'Activate'}
-            aria-label={(user.active ? 'Deactivate ' : 'Activate ') + user.username}
-            className="rounded-lg p-1.5 text-ink-subtle hover:bg-surface-alt hover:text-ink transition-colors"
-          >
-            {user.active
-              ? <ToggleRight size={16} className="text-success" />
-              : <ToggleLeft  size={16} />}
-          </button>
-          <button
-            onClick={() => onEdit(user)}
-            title="Edit" aria-label={'Edit ' + user.username}
-            className="rounded-lg p-1.5 text-ink-subtle hover:bg-surface-alt hover:text-ink transition-colors"
-          >
-            <Pencil size={14} />
-          </button>
-          <button
-            onClick={() => onDelete(user)}
-            title="Delete" aria-label={'Delete ' + user.username}
-            className="rounded-lg p-1.5 text-ink-subtle hover:bg-danger/10 hover:text-danger transition-colors"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-      </td>
-    </tr>
-  )
+          </Badge>
+        )
+      },
+    },
+    {
+      key: 'active', header: 'Status',
+      render: (r: Record<string, unknown>) => asUser(r).active
+        ? <Badge variant="success">Active</Badge>
+        : <Badge variant="danger">Inactive</Badge>,
+    },
+    {
+      key: 'createdAt', header: 'Created', className: 'text-xs text-ink-muted',
+      render: (r: Record<string, unknown>) => new Date(asUser(r).createdAt).toLocaleDateString(),
+    },
+    {
+      key: 'actions', header: 'Actions', className: 'text-right',
+      render: (r: Record<string, unknown>) => {
+        const user = asUser(r)
+        return (
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => onToggle(user)}
+              title={user.active ? 'Deactivate' : 'Activate'}
+              aria-label={(user.active ? 'Deactivate ' : 'Activate ') + user.username}
+              className={rowBtn}
+            >
+              {user.active
+                ? <ToggleRight size={18} className="text-success-ink" aria-hidden="true" />
+                : <ToggleLeft  size={18} aria-hidden="true" />}
+            </button>
+            <button type="button" onClick={() => onEdit(user)} title="Edit" aria-label={'Edit ' + user.username} className={rowBtn}>
+              <Pencil size={15} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(user)}
+              title="Delete" aria-label={'Delete ' + user.username}
+              className={cn(rowBtn, 'hover:bg-danger-light hover:text-danger-ink')}
+            >
+              <Trash2 size={15} aria-hidden="true" />
+            </button>
+          </div>
+        )
+      },
+    },
+  ]
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -526,8 +491,8 @@ function UserFormFields({
       {/* ── Doctor-specific fields ── */}
       {isDoctor && (
           <div className="border-t border-border pt-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-subtle flex items-center gap-1.5">
-              <Stethoscope size={11} /> Doctor Profile
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-muted flex items-center gap-1.5">
+              <Stethoscope size={11} aria-hidden="true" /> Doctor Profile
             </p>
             <div className="space-y-3">
               <Field label="Specialization" error={errors.specialization?.message}>
@@ -552,8 +517,8 @@ function UserFormFields({
       {/* ── Employee-specific fields ── */}
       {isEmployee && (
           <div className="border-t border-border pt-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-subtle flex items-center gap-1.5">
-              <UserCog size={11} /> Staff Profile
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink-muted flex items-center gap-1.5">
+              <UserCog size={11} aria-hidden="true" /> Staff Profile
             </p>
             <div className="space-y-3">
               <Field label="Phone" error={errors.phone?.message}>
@@ -578,14 +543,8 @@ function UserFormFields({
 function ModalActions({ onCancel, isPending, label }: Readonly<{ onCancel: () => void; isPending: boolean; label: string }>) {
   return (
     <div className="flex justify-end gap-3 pt-2">
-      <button type="button" onClick={onCancel}
-        className="rounded-xl border border-border px-4 py-2 text-sm text-ink-subtle hover:bg-surface-alt">
-        Cancel
-      </button>
-      <button type="submit" disabled={isPending}
-        className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-60">
-        {isPending ? 'Saving…' : label}
-      </button>
+      <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
+      <Button type="submit" loading={isPending}>{label}</Button>
     </div>
   )
 }
@@ -593,20 +552,15 @@ function ModalActions({ onCancel, isPending, label }: Readonly<{ onCancel: () =>
 function Field({ label, error, children }: Readonly<{ label: string; error?: string; children: React.ReactNode }>) {
   return (
     <div className="space-y-1">
-      <label className="block space-y-1">
-        <span className="text-xs font-medium text-ink-subtle">{label}</span>
+      <label className="block space-y-1.5">
+        <span className="text-sm font-medium text-ink">{label}</span>
         {children}
       </label>
-      {error && <p className="text-xs text-danger">{error}</p>}
+      {error && <p className="text-xs text-danger-ink">{error}</p>}
     </div>
   )
 }
 
 function inputCls(hasError: boolean) {
-  return cn(
-    'w-full rounded-xl border bg-surface-alt px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2',
-    hasError
-      ? 'border-danger focus:ring-danger/30'
-      : 'border-border focus:border-primary focus:ring-primary/20',
-  )
+  return cn('input', hasError && 'border-danger focus:border-danger focus:ring-danger/20')
 }
